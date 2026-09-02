@@ -17,6 +17,7 @@ import {
   getAuth,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  signInAnonymously,
   signInWithEmailAndPassword,
   signOut,
   type User,
@@ -33,6 +34,14 @@ export const entrar = (email: string, clave: string) =>
   signInWithEmailAndPassword(obtenerAuth(), email.trim(), clave);
 
 export const salir = () => signOut(obtenerAuth());
+
+/* Acceso sin credenciales. Firebase entrega un UID real y temporal, así que
+   `request.auth` deja de ser nulo y las reglas de Firestore pueden autorizar
+   la escritura. Sin esto, el modo invitado puede leer (si las reglas están
+   abiertas) pero nunca guardar.
+
+   Requiere activar "Anónimo" en la consola: Authentication → Sign-in method. */
+export const entrarComoAnonimo = () => signInAnonymously(obtenerAuth());
 
 export const recuperarClave = (email: string) =>
   sendPasswordResetEmail(obtenerAuth(), email.trim());
@@ -70,7 +79,9 @@ export function mensajeDeError(error: unknown): string {
     'auth/weak-password': 'La clave debe tener al menos 6 caracteres.',
     'auth/network-request-failed': 'Sin conexión con el servidor.',
     'auth/operation-not-allowed':
-      'Falta activar el acceso con correo y clave en la consola de Firebase.',
+      'Falta activar este método de acceso en la consola de Firebase (Authentication → Sign-in method).',
+    'auth/admin-restricted-operation':
+      'El acceso anónimo está desactivado. Actívalo en Authentication → Sign-in method → Anónimo.',
   };
 
   return mapa[codigo] ?? 'No se pudo completar la operación. Intenta de nuevo.';

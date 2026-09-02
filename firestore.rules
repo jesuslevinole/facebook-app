@@ -3,29 +3,43 @@ rules_version = '2';
 /* ============================================================
    RedLink — reglas de Firestore
 
-   Se usan en dos etapas:
+   Elige UN bloque, publícalo y comenta el resto.
 
-   ETAPA 1 · ARRANQUE (lo que está activo ahora)
-     Permite escribir sin sesión porque la primera cuenta y los roles base
-     se crean *antes* de que exista alguien autenticado. Sirve solo para
-     ese primer momento.
-
-   ETAPA 2 · PRODUCCIÓN
-     Apenas hayas creado tu cuenta de administrador desde la pantalla de
-     acceso: comenta el bloque de ARRANQUE, descomenta el de PRODUCCIÓN y
-     vuelve a publicar las reglas. Desde ahí cada operación se valida
-     contra los permisos del rol de quien la pide.
+   · ARRANQUE      — todo abierto. Solo para el primer día.
+   · CON INVITADOS — exige sesión (incluida la anónima del modo invitado).
+   · ESTRICTAS     — cada operación validada contra los permisos del rol.
+                     El modo invitado NO funciona con estas.
    ============================================================ */
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ---------- ETAPA 1 · ARRANQUE (quitar tras crear el admin) ----------
+    // ---------- OPCIÓN A · ARRANQUE ----------
+    // Cualquiera con la URL puede leer y escribir. Úsalo solo mientras
+    // configuras; no lo dejes cuando el equipo cargue clientes reales.
     match /{document=**} {
       allow read, write: if true;
     }
 
-    // ---------- ETAPA 2 · PRODUCCIÓN ----------
+
+    // ---------- OPCIÓN B · CON INVITADOS ----------
+    // Exige una sesión de Firebase, que puede ser anónima. El botón
+    // "Entrar sin sesión" sigue funcionando y puede guardar.
+    //
+    // Qué protege: bots y visitantes casuales que abren la URL sin ejecutar
+    // el JavaScript de la app. Qué NO protege: alguien decidido que abra la
+    // app y toque el botón de invitado. Es un punto intermedio, no un cierre.
+    //
+    // match /{document=**} {
+    //   allow read, write: if request.auth != null;
+    // }
+
+
+    // ---------- OPCIÓN C · ESTRICTAS ----------
+    // Cada operación se valida contra los permisos del rol de quien la pide.
+    // Requiere que todos entren con correo y clave: en modo invitado la app
+    // se verá vacía y no podrá guardar nada.
+    //
     // function perfil() {
     //   return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
     // }
@@ -44,7 +58,6 @@ service cloud.firestore {
     //   return habilitado() && p in permisos();
     // }
     //
-    // // Cualquiera con sesión válida necesita leer su perfil y su rol.
     // match /usuarios/{uid} {
     //   allow read: if habilitado() || request.auth.uid == uid;
     //   allow write: if puede('usuarios.gestionar');
@@ -57,7 +70,6 @@ service cloud.firestore {
     //
     // match /clientes/{id} {
     //   allow read: if puede('clientes.ver');
-    //   // El dueño se fija al crear y no se puede suplantar.
     //   allow create: if puede('clientes.editar') && request.resource.data.uid == request.auth.uid;
     //   allow update, delete: if puede('clientes.editar');
     // }
@@ -65,7 +77,6 @@ service cloud.firestore {
     // match /publicaciones/{id} {
     //   allow read: if habilitado();
     //   allow create: if puede('publicar') && request.resource.data.uid == request.auth.uid;
-    //   // Solo se puede deshacer el registro propio.
     //   allow delete: if puede('publicar') && resource.data.uid == request.auth.uid;
     //   allow update: if false;
     // }

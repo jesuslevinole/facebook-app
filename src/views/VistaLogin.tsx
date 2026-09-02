@@ -227,14 +227,14 @@ export default function VistaLogin({ rechazo }: Props) {
               <button
                 type="button"
                 className="btn btn-outline btn-block"
-                onClick={entrarComoInvitado}
+                onClick={() => void entrarComoInvitado()}
               >
                 <Unlock size={16} />
                 Entrar sin sesión
               </button>
               <p className="acceso-nota">
-                Acceso completo sin autenticar, para revisar la app. No se registra a tu
-                nombre: lo que publiques o registres queda sin vendedor asignado.
+                Entra con una sesión anónima y permisos totales. Lo que registres queda
+                a nombre de «Invitado», no de un vendedor del equipo.
               </p>
             </>
           )}

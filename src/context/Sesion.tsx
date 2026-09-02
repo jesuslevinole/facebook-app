@@ -14,7 +14,7 @@ import {
   hayUsuarios,
   leerUsuario,
 } from '../services/datos';
-import { observarSesion, salir } from '../services/auth';
+import { entrarComoAnonimo, mensajeDeError, observarSesion, salir } from '../services/auth';
 import { ID_ADMIN, ROLES_BASE } from '../data/rolesBase';
 import { PERMISOS, type Identidad, type Permiso, type Rol, type Usuario } from '../types';
 import { ACCESO_INVITADO } from '../config/acceso';
@@ -29,17 +29,17 @@ interface Sesion {
   rechazo: string;
   puede: (permiso: Permiso) => boolean;
   identidad: Identidad;
-  /** true cuando se entró sin autenticar (modo invitado). */
+  /** true cuando se entró en modo invitado (sesión anónima). */
   esInvitado: boolean;
-  entrarComoInvitado: () => void;
+  entrarComoInvitado: () => Promise<void>;
   cerrarSesion: () => Promise<void>;
   refrescarPerfil: () => Promise<void>;
 }
 
 const Contexto = createContext<Sesion | null>(null);
 
-/* Perfil ficticio del modo invitado. No existe en Firestore ni en Auth:
-   solo vive en memoria mientras dura la pestaña. */
+/* Perfil ficticio del modo invitado. No existe como documento en Firestore,
+   pero sí tiene una sesión anónima real en Auth: por eso puede escribir. */
 const ROL_INVITADO: Rol = {
   id: 'invitado',
   nombre: 'Invitado (sin sesión)',
@@ -49,15 +49,17 @@ const ROL_INVITADO: Rol = {
   createdAt: '',
 };
 
-const PERFIL_INVITADO: Usuario = {
-  id: 'invitado',
-  nombre: 'Invitado',
-  email: '',
-  telefono: '',
-  rolId: 'invitado',
-  activo: true,
-  createdAt: '',
-};
+function perfilInvitado(uid: string): Usuario {
+  return {
+    id: uid,
+    nombre: 'Invitado',
+    email: '',
+    telefono: '',
+    rolId: 'invitado',
+    activo: true,
+    createdAt: '',
+  };
+}
 
 export function ProveedorSesion({ children }: { children: ReactNode }) {
   const [cargando, setCargando] = useState(true);
@@ -82,6 +84,20 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
       }
 
       setUid(usuarioAuth.uid);
+
+      /* Sesión anónima = modo invitado. No se busca perfil en Firestore:
+         el perfil es sintético y los permisos son totales. Como Firebase
+         restaura la sesión al recargar, el modo invitado sobrevive a un
+         refresco de la página. */
+      if (usuarioAuth.isAnonymous) {
+        setEsInvitado(true);
+        setPerfil(perfilInvitado(usuarioAuth.uid));
+        setRechazo('');
+        setCargando(false);
+        return;
+      }
+
+      setEsInvitado(false);
       try {
         let encontrado = await leerUsuario(usuarioAuth.uid);
 
@@ -154,12 +170,14 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     [rol]
   );
 
-  const entrarComoInvitado = useCallback(() => {
+  const entrarComoInvitado = useCallback(async () => {
     if (!ACCESO_INVITADO) return;
-    setEsInvitado(true);
-    setPerfil(PERFIL_INVITADO);
-    setRechazo('');
-    setCargando(false);
+    try {
+      /* El resto lo hace `observarSesion`, que detecta la sesión anónima. */
+      await entrarComoAnonimo();
+    } catch (error) {
+      setRechazo(mensajeDeError(error));
+    }
   }, []);
 
   const refrescarPerfil = useCallback(async () => {
@@ -169,15 +187,11 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   }, [uid, esInvitado]);
 
   const cerrarSesion = useCallback(async () => {
-    if (esInvitado) {
-      setEsInvitado(false);
-      setPerfil(null);
-      return;
-    }
     await salir();
+    setEsInvitado(false);
     setPerfil(null);
     setRechazo('');
-  }, [esInvitado]);
+  }, []);
 
   const valor = useMemo<Sesion>(
     () => ({
