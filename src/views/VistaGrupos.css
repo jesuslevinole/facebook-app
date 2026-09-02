@@ -1,0 +1,92 @@
+.grupos-resumen {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.col-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.fila-pausada {
+  opacity: 0.6;
+}
+
+.barra-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.barra-mini .progress {
+  flex: 1;
+  height: 6px;
+}
+
+/* ---------- Tarjetas móviles ---------- */
+.grupos-tarjetas {
+  display: none;
+  flex-direction: column;
+}
+
+.grupo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.grupo-card:first-child {
+  border-top: 0;
+}
+
+.grupo-card.pausada {
+  opacity: 0.65;
+}
+
+.grupo-card-datos {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.grupo-card-datos dd {
+  margin-top: 2px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.grupo-card-acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.grupo-card-acciones .btn {
+  flex: 1;
+}
+
+.grupo-botones {
+  display: flex;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 1100px) {
+  .tabla-grupos {
+    display: none;
+  }
+  .grupos-tarjetas {
+    display: flex;
+  }
+}
+
+@media (max-width: 620px) {
+  .grupo-card-datos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

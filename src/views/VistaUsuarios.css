@@ -1,0 +1,159 @@
+.usuarios-tabs {
+  margin-bottom: 0;
+}
+
+.usuarios-tu {
+  margin-left: 8px;
+}
+
+.usuarios-check {
+  align-items: center;
+  gap: 8px;
+}
+
+.col-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Roles ---------- */
+.roles {
+  display: grid;
+  gap: var(--gap);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.rol {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rol-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.rol-titulo {
+  flex: 1;
+  min-width: 0;
+}
+
+.rol-permisos {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.rol-permisos li {
+  position: relative;
+  padding-left: 16px;
+}
+
+.rol-permisos li::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: var(--r-pill);
+  background: var(--success);
+}
+
+/* ---------- Editor de permisos ---------- */
+.permisos {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.permiso-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.permiso-lista {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.permiso {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  height: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  transition: border-color var(--speed);
+}
+
+.permiso:hover {
+  border-color: var(--border-strong);
+}
+
+.permiso input {
+  margin-top: 3px;
+  flex: 0 0 auto;
+}
+
+.permiso-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.permiso-titulo {
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+
+/* ---------- Tarjetas móviles ---------- */
+.usuarios-tarjetas {
+  display: none;
+  flex-direction: column;
+}
+
+.usuario-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.usuario-card:first-child {
+  border-top: 0;
+}
+
+@media (max-width: 1180px) {
+  .roles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .usuarios-tarjetas {
+    display: flex;
+  }
+  .tabla-usuarios {
+    display: none;
+  }
+  .roles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .permiso-lista {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

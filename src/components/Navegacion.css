@@ -1,0 +1,168 @@
+/* ---------- Barra lateral (escritorio) ---------- */
+.lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: var(--sidebar-w);
+  flex: 0 0 auto;
+  padding: 22px 16px;
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+}
+
+.marca-signo {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  background: var(--primary);
+}
+
+.marca-signo::after {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border: 2px solid var(--surface);
+  border-bottom-color: transparent;
+  border-radius: var(--r-pill);
+}
+
+.marca-nombre {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.lateral-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lateral-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text-2);
+  font-family: var(--font-display);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  text-align: left;
+  transition: background var(--speed), color var(--speed);
+}
+
+.nav-btn.activo {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.nav-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.nav-btn.activo:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+/* ---------- Tarjeta de meta ---------- */
+.meta-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+}
+
+.meta-cifra {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.meta-total {
+  font-size: 15px;
+  color: var(--text-3);
+}
+
+.meta-texto {
+  font-size: var(--t-xs);
+  color: var(--text-2);
+}
+
+/* ---------- Barra inferior (móvil) ---------- */
+.inferior {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  display: none;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.inferior-lista {
+  display: flex;
+}
+
+.inferior-item {
+  flex: 1;
+}
+
+.inferior-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  padding: 9px 2px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  transition: color var(--speed);
+}
+
+.inferior-btn.activo {
+  color: var(--primary);
+}
+
+.inferior-label {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .lateral {
+    display: none;
+  }
+  .inferior {
+    display: block;
+  }
+}

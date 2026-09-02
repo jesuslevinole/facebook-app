@@ -1,0 +1,211 @@
+/* ---------- KPI ---------- */
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 128px;
+}
+
+.kpi-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.kpi-title {
+  font-family: var(--font-display);
+  font-size: var(--t-body);
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.kpi-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+}
+
+.kpi-value {
+  font-size: var(--t-hero);
+  line-height: 1.1;
+}
+
+.kpi-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  flex-wrap: wrap;
+}
+
+.kpi-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--t-xs);
+  font-weight: 700;
+}
+
+.kpi-delta.up {
+  color: var(--success);
+}
+.kpi-delta.down {
+  color: var(--danger);
+}
+
+.kpi-note {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+/* ---------- Dona ---------- */
+.dona {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dona-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dona-total {
+  font-size: var(--t-hero);
+  line-height: 1.1;
+}
+
+.dona-cuerpo {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.dona-leyenda {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dona-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--t-xs);
+  color: var(--text-2);
+  min-width: 0;
+}
+
+.dona-pct {
+  font-size: var(--t-xs);
+  color: var(--text);
+}
+
+.dona-etiqueta {
+  min-width: 0;
+}
+
+.dona-svg {
+  width: 118px;
+  height: 118px;
+  flex: 0 0 auto;
+  transform: rotate(-90deg);
+}
+
+.dona-pista {
+  fill: none;
+  stroke: var(--track);
+  stroke-width: 16;
+}
+
+.dona-arco {
+  fill: none;
+  stroke-width: 16;
+  stroke-linecap: butt;
+  transition: stroke-dasharray 500ms ease-out;
+}
+
+/* ---------- Barras ---------- */
+.barras-area {
+  display: flex;
+  gap: 12px;
+  height: 190px;
+}
+
+.barras-eje {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-bottom: 22px;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.barras-lista {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.barra-col {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  height: 100%;
+  min-width: 0;
+}
+
+.barra-valor {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+  height: 14px;
+}
+
+.barra {
+  width: min(100%, 22px);
+  height: var(--altura, 0%);
+  min-height: 3px;
+  border-radius: var(--r-pill);
+  background: var(--c1);
+  transition: height 480ms ease-out;
+}
+
+.barra.hoy {
+  background: var(--violet);
+}
+
+.barra-label {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .barras-area {
+    height: 160px;
+  }
+  .barra-label {
+    font-size: 10px;
+  }
+  .barra-valor {
+    display: none;
+  }
+}

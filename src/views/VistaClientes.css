@@ -1,0 +1,68 @@
+.carga-lista {
+  padding: 16px;
+}
+
+.celda-nombre {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.celda-fuerte {
+  font-weight: 600;
+}
+
+.num-cell {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tarjetas móviles (ocultas en escritorio) */
+.tarjetas-clientes {
+  display: none;
+  flex-direction: column;
+}
+
+.cliente-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.cliente-card:first-child {
+  border-top: 0;
+}
+
+.cliente-datos {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cliente-datos dd {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  color: var(--text-2);
+}
+
+.cliente-acciones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cliente-acciones .btn {
+  flex: 1;
+}
+
+@media (max-width: 900px) {
+  .tabla-clientes {
+    display: none;
+  }
+  .tarjetas-clientes {
+    display: flex;
+  }
+}

@@ -1,0 +1,44 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.panel-medio {
+  display: grid;
+  gap: var(--gap);
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+}
+
+.top-grupos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.top-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.top-grupo .row-between {
+  gap: 10px;
+}
+
+@media (max-width: 1180px) {
+  .panel-medio {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* La tabla del panel no cabe cómoda en pantallas chicas: se recorta a lo esencial. */
+@media (max-width: 620px) {
+  .panel .table th:nth-child(3),
+  .panel .table td:nth-child(3),
+  .panel .table th:nth-child(4),
+  .panel .table td:nth-child(4) {
+    display: none;
+  }
+}

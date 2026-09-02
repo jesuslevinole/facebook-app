@@ -1,0 +1,88 @@
+rules_version = '2';
+
+/* ============================================================
+   RedLink — reglas de Firestore
+
+   Se usan en dos etapas:
+
+   ETAPA 1 · ARRANQUE (lo que está activo ahora)
+     Permite escribir sin sesión porque la primera cuenta y los roles base
+     se crean *antes* de que exista alguien autenticado. Sirve solo para
+     ese primer momento.
+
+   ETAPA 2 · PRODUCCIÓN
+     Apenas hayas creado tu cuenta de administrador desde la pantalla de
+     acceso: comenta el bloque de ARRANQUE, descomenta el de PRODUCCIÓN y
+     vuelve a publicar las reglas. Desde ahí cada operación se valida
+     contra los permisos del rol de quien la pide.
+   ============================================================ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- ETAPA 1 · ARRANQUE (quitar tras crear el admin) ----------
+    match /{document=**} {
+      allow read, write: if true;
+    }
+
+    // ---------- ETAPA 2 · PRODUCCIÓN ----------
+    // function perfil() {
+    //   return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    // }
+    //
+    // function habilitado() {
+    //   return request.auth != null
+    //     && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+    //     && perfil().activo == true;
+    // }
+    //
+    // function permisos() {
+    //   return get(/databases/$(database)/documents/roles/$(perfil().rolId)).data.permisos;
+    // }
+    //
+    // function puede(p) {
+    //   return habilitado() && p in permisos();
+    // }
+    //
+    // // Cualquiera con sesión válida necesita leer su perfil y su rol.
+    // match /usuarios/{uid} {
+    //   allow read: if habilitado() || request.auth.uid == uid;
+    //   allow write: if puede('usuarios.gestionar');
+    // }
+    //
+    // match /roles/{id} {
+    //   allow read: if request.auth != null;
+    //   allow write: if puede('usuarios.gestionar');
+    // }
+    //
+    // match /clientes/{id} {
+    //   allow read: if puede('clientes.ver');
+    //   // El dueño se fija al crear y no se puede suplantar.
+    //   allow create: if puede('clientes.editar') && request.resource.data.uid == request.auth.uid;
+    //   allow update, delete: if puede('clientes.editar');
+    // }
+    //
+    // match /publicaciones/{id} {
+    //   allow read: if habilitado();
+    //   allow create: if puede('publicar') && request.resource.data.uid == request.auth.uid;
+    //   // Solo se puede deshacer el registro propio.
+    //   allow delete: if puede('publicar') && resource.data.uid == request.auth.uid;
+    //   allow update: if false;
+    // }
+    //
+    // match /grupos/{id} {
+    //   allow read: if habilitado();
+    //   allow write: if puede('grupos.editar');
+    // }
+    //
+    // match /plantillas/{id} {
+    //   allow read: if habilitado();
+    //   allow write: if puede('mensajes.editar');
+    // }
+    //
+    // match /ajustes/{id} {
+    //   allow read: if habilitado();
+    //   allow write: if puede('ajustes.editar');
+    // }
+  }
+}

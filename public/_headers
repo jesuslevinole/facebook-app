@@ -1,0 +1,25 @@
+# Cabeceras para Cloudflare Pages.
+# Se copian tal cual a la raíz de `dist` al compilar.
+
+# Los archivos de /assets llevan un hash en el nombre: si cambia el contenido,
+# cambia el nombre. Se pueden cachear para siempre sin riesgo.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# El HTML y el service worker NUNCA se cachean: son los que avisan al
+# navegador de que hay una versión nueva. Si se cachean, el equipo sigue
+# viendo la app vieja aunque ya hayas publicado la nueva.
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/sw.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache
+
+# Endurecimiento básico.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN

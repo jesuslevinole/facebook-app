@@ -1,0 +1,58 @@
+.config-pendiente {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  background: var(--bg);
+}
+
+.config-caja {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 560px;
+  box-shadow: var(--shadow-md);
+}
+
+.config-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.config-faltantes {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.config-pasos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 18px;
+  list-style: decimal;
+  color: var(--text-2);
+}
+
+.config-pasos li {
+  padding-left: 4px;
+}
+
+.config-codigo {
+  margin: 0;
+  padding: 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: var(--t-xs);
+  line-height: 1.7;
+  overflow-x: auto;
+  white-space: pre;
+}

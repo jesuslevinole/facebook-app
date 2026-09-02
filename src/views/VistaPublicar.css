@@ -1,0 +1,182 @@
+/* ---------- Resumen superior ---------- */
+.resumen-ruta {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.resumen-datos {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.resumen-dato {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.resumen-cifra {
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.resumen-meta {
+  font-size: 16px;
+  color: var(--text-3);
+}
+
+.resumen-progreso {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+/* ---------- Tabla de ruta ---------- */
+.col-orden {
+  width: 46px;
+  text-align: center;
+}
+
+.tabla-ruta .table td {
+  vertical-align: middle;
+}
+
+.fila-hecha {
+  color: var(--text-3);
+}
+
+.fila-hecha .celda-fuerte {
+  font-weight: 500;
+}
+
+.mensaje-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 240px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  transition: border-color var(--speed), color var(--speed);
+}
+
+.mensaje-toggle:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.mensaje-toggle .girado {
+  transform: rotate(180deg);
+}
+
+.acciones-fila {
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.fila-mensaje td {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.fila-mensaje .parada-texto {
+  padding: 12px 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.parada-texto {
+  font-size: var(--t-sm);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  color: var(--text-2);
+}
+
+.parada-orden {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--text-3);
+  font-size: var(--t-sm);
+}
+
+/* ---------- Tarjetas móviles ---------- */
+.ruta-tarjetas {
+  display: none;
+  flex-direction: column;
+}
+
+.ruta-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+}
+
+.ruta-card:first-child {
+  border-top: 0;
+}
+
+.ruta-card.hecha {
+  border-left-color: var(--success);
+}
+
+.ruta-card.hecha .parada-orden {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.ruta-card-texto {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  padding: 10px 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.ruta-card-acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.ruta-card-acciones .btn {
+  flex: 1;
+}
+
+@media (max-width: 1100px) {
+  .tabla-ruta {
+    display: none;
+  }
+  .ruta-tarjetas {
+    display: flex;
+  }
+}
+
+@media (max-width: 620px) {
+  .resumen-datos {
+    gap: 20px;
+  }
+  .resumen-cifra {
+    font-size: 24px;
+  }
+}

@@ -1,0 +1,134 @@
+.acceso {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+/* ---------- Panel de marca ---------- */
+.acceso-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+  padding: 56px;
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+}
+
+.acceso-marca {
+  padding: 0;
+  margin-bottom: 6px;
+}
+
+.acceso-lema {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+
+.acceso-bajada {
+  max-width: 42ch;
+  color: var(--text-2);
+}
+
+.acceso-puntos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.acceso-puntos li {
+  position: relative;
+  padding-left: 22px;
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+
+.acceso-puntos li::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--primary);
+}
+
+/* ---------- Formulario ---------- */
+.acceso-formulario {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.acceso-caja {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 380px;
+  padding: 28px;
+  box-shadow: var(--shadow-md);
+}
+
+.acceso-clave {
+  position: relative;
+  display: block;
+}
+
+.acceso-clave .input {
+  padding-right: 46px;
+}
+
+.acceso-ojo {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+}
+
+.acceso-alerta {
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--warn-soft);
+  color: #8a5a00;
+  font-size: var(--t-sm);
+}
+
+[data-theme='dark'] .acceso-alerta {
+  color: var(--warn);
+}
+
+.acceso-cambio {
+  text-align: center;
+}
+
+.acceso-enlace {
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  padding: 0;
+}
+
+@media (max-width: 900px) {
+  .acceso {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .acceso-panel {
+    display: none;
+  }
+  .acceso-formulario {
+    padding: 24px 16px;
+  }
+  .acceso-caja {
+    max-width: 420px;
+  }
+}
