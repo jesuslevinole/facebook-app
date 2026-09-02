@@ -1,4 +1,0 @@
-# La app es una SPA: cualquier ruta desconocida debe devolver index.html
-# en vez de un 404 de Cloudflare. Hoy no hay rutas, pero esto evita que
-# se rompa el día que se agreguen (o si alguien recarga en una subruta).
-/*    /index.html   200
