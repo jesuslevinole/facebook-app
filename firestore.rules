@@ -69,9 +69,20 @@ service cloud.firestore {
     // }
     //
     // match /clientes/{id} {
-    //   allow read: if puede('clientes.ver');
+    //   // Solo el dueño, con quien lo compartió, o quien puede ver a todo el equipo.
+    //   allow read: if puede('clientes.verTodos')
+    //     || (puede('clientes.ver') && (resource.data.uid == request.auth.uid
+    //         || request.auth.uid in resource.data.compartidoCon));
     //   allow create: if puede('clientes.editar') && request.resource.data.uid == request.auth.uid;
-    //   allow update, delete: if puede('clientes.editar');
+    //   allow update: if puede('clientes.editar') && (resource.data.uid == request.auth.uid
+    //     || request.auth.uid in resource.data.compartidoCon);
+    //   allow delete: if puede('clientes.editar') && resource.data.uid == request.auth.uid;
+    // }
+    //
+    // match /membresias/{id} {
+    //   allow read: if habilitado();
+    //   // Cada vendedor solo gestiona sus propias membresías.
+    //   allow write: if habilitado() && id.split('_')[0] == request.auth.uid;
     // }
     //
     // match /publicaciones/{id} {

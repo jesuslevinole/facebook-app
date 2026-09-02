@@ -2,12 +2,15 @@ import { useMemo, useState } from 'react';
 import {
   ExternalLink,
   Facebook,
+  Lock,
   MapPin,
   Pencil,
   Plus,
   Search,
+  Share2,
   Trash2,
   UserPlus,
+  Users,
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useAvisos } from '../components/Avisos';
@@ -36,6 +39,7 @@ const ESTADOS: { id: EstadoCliente; etiqueta: string; clase: string }[] = [
 
 const VACIO: Omit<Cliente, 'id'> = {
   uid: '',
+  compartidoCon: [],
   nombre: '',
   apellido: '',
   rut: '',
@@ -56,13 +60,14 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
   const { avisar } = useAvisos();
   const { perfil, puede } = useSesion();
   const puedeEditar = puede('clientes.editar');
-  const verTodos = puede('clientes.verTodos');
   const [busqueda, setBusqueda] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoCliente | 'todos'>('todos');
   const [grupoFiltro, setGrupoFiltro] = useState<string>('todos');
   const [editando, setEditando] = useState<Cliente | null>(null);
   const [creando, setCreando] = useState(false);
   const [porBorrar, setPorBorrar] = useState<Cliente | null>(null);
+  const [porCompartir, setPorCompartir] = useState<Cliente | null>(null);
+  const [visibilidad, setVisibilidad] = useState<'todos' | 'mios' | 'compartidos'>('todos');
 
   const nombreVendedor = useMemo(() => {
     const mapa = new Map(usuarios.map((u) => [u.id, u.nombre]));
@@ -78,6 +83,8 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
     const texto = busqueda.trim().toLowerCase();
     return clientes.filter((c) => {
       if (estadoFiltro !== 'todos' && c.estado !== estadoFiltro) return false;
+      if (visibilidad === 'mios' && c.uid !== perfil?.id) return false;
+      if (visibilidad === 'compartidos' && c.uid === perfil?.id) return false;
       if (grupoFiltro !== 'todos') {
         if (grupoFiltro === 'sin' ? c.grupoId !== null : c.grupoId !== grupoFiltro) return false;
       }
@@ -86,7 +93,7 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
         .toLowerCase()
         .includes(texto);
     });
-  }, [clientes, busqueda, estadoFiltro, grupoFiltro]);
+  }, [clientes, busqueda, estadoFiltro, grupoFiltro, visibilidad, perfil]);
 
   const guardar = async (datos: Omit<Cliente, 'id'>, id?: string) => {
     const ahora = new Date().toISOString();
@@ -100,6 +107,7 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
         await crearCliente({
           ...datos,
           uid: perfil?.id ?? '',
+          compartidoCon: [],
           createdAt: ahora,
           updatedAt: ahora,
         });
@@ -151,6 +159,16 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
               {e.etiqueta}
             </option>
           ))}
+        </select>
+
+        <select
+          className="select"
+          value={visibilidad}
+          onChange={(e) => setVisibilidad(e.target.value as 'todos' | 'mios' | 'compartidos')}
+        >
+          <option value="todos">Míos y compartidos</option>
+          <option value="mios">Solo los míos</option>
+          <option value="compartidos">Compartidos conmigo</option>
         </select>
 
         <select
@@ -213,7 +231,7 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
                     <th>Comuna y dirección</th>
                     <th>Plan</th>
                     <th>Origen</th>
-                    {verTodos && <th>Vendedor</th>}
+                    <th>Vendedor</th>
                     <th>Estado</th>
                     <th className="cell-actions">Acciones</th>
                   </tr>
@@ -251,7 +269,26 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
                           {c.plan && <p className="text-sm muted-soft">{c.plan}</p>}
                         </td>
                         <td className="text-sm muted">{nombreGrupo(c.grupoId)}</td>
-                        {verTodos && <td className="text-sm muted">{nombreVendedor(c.uid)}</td>}
+                        <td className="text-sm muted">
+                          {c.uid === perfil?.id ? (
+                            <span className="row">
+                              Tú
+                              {c.compartidoCon.length > 0 ? (
+                                <span className="badge blue">
+                                  <Users size={11} />
+                                  {c.compartidoCon.length}
+                                </span>
+                              ) : (
+                                <Lock size={12} className="muted-soft" />
+                              )}
+                            </span>
+                          ) : (
+                            <span className="row">
+                              {nombreVendedor(c.uid)}
+                              <span className="badge violet">Compartido</span>
+                            </span>
+                          )}
+                        </td>
                         <td>
                           <span className={`badge ${estado.clase}`}>{estado.etiqueta}</span>
                         </td>
@@ -266,6 +303,17 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
                             >
                               <Facebook size={16} />
                             </a>
+                          )}
+                          {c.uid === perfil?.id && (
+                            <button
+                              type="button"
+                              className="icon-btn"
+                              onClick={() => setPorCompartir(c)}
+                              aria-label={`Compartir ${c.nombre}`}
+                              title="Compartir con el equipo"
+                            >
+                              <Share2 size={16} />
+                            </button>
                           )}
                           {puedeEditar && (
                             <>
@@ -335,12 +383,16 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
                         <dt className="eyebrow">Origen</dt>
                         <dd className="text-sm">{nombreGrupo(c.grupoId)}</dd>
                       </div>
-                      {verTodos && (
-                        <div>
-                          <dt className="eyebrow">Vendedor</dt>
-                          <dd className="text-sm">{nombreVendedor(c.uid)}</dd>
-                        </div>
-                      )}
+                      <div>
+                        <dt className="eyebrow">Vendedor</dt>
+                        <dd className="text-sm">
+                          {c.uid === perfil?.id
+                            ? c.compartidoCon.length > 0
+                              ? `Tú · compartido con ${c.compartidoCon.length}`
+                              : 'Tú · privado'
+                            : `${nombreVendedor(c.uid)} · compartido`}
+                        </dd>
+                      </div>
                     </dl>
 
                     <div className="cliente-acciones">
@@ -354,6 +406,16 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
                           <ExternalLink size={14} />
                           Facebook
                         </a>
+                      )}
+                      {c.uid === perfil?.id && (
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-sm"
+                          onClick={() => setPorCompartir(c)}
+                        >
+                          <Share2 size={14} />
+                          Compartir
+                        </button>
                       )}
                       {puedeEditar && (
                         <>
@@ -393,6 +455,14 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
             setEditando(null);
           }}
           alGuardar={guardar}
+        />
+      )}
+
+      {porCompartir && (
+        <ModalCompartir
+          cliente={porCompartir}
+          usuarios={usuarios}
+          alCerrar={() => setPorCompartir(null)}
         />
       )}
 
@@ -638,6 +708,100 @@ function FormularioCliente({ cliente, grupos, alCerrar, alGuardar }: FormProps) 
           />
         </label>
       </div>
+    </Modal>
+  );
+}
+
+/* ---------- Compartir ---------- */
+
+interface CompartirProps {
+  cliente: Cliente;
+  usuarios: Usuario[];
+  alCerrar: () => void;
+}
+
+/* El dueño elige con quién comparte la ficha. Compartir da acceso de
+   lectura y edición, pero no traspasa la propiedad: el cliente sigue
+   contando para las cifras de quien lo registró. */
+function ModalCompartir({ cliente, usuarios, alCerrar }: CompartirProps) {
+  const { avisar } = useAvisos();
+  const { perfil } = useSesion();
+  const [seleccion, setSeleccion] = useState<string[]>(cliente.compartidoCon ?? []);
+  const [guardando, setGuardando] = useState(false);
+
+  const candidatos = usuarios.filter((u) => u.id !== cliente.uid && u.activo);
+
+  const alternar = (uid: string) =>
+    setSeleccion((previos) =>
+      previos.includes(uid) ? previos.filter((p) => p !== uid) : [...previos, uid]
+    );
+
+  const guardar = async () => {
+    setGuardando(true);
+    try {
+      await editarCliente(cliente.id, {
+        compartidoCon: seleccion,
+        updatedAt: new Date().toISOString(),
+      });
+      avisar(
+        seleccion.length === 0
+          ? 'La ficha volvió a ser privada.'
+          : `Compartida con ${seleccion.length} ${seleccion.length === 1 ? 'persona' : 'personas'}.`
+      );
+      alCerrar();
+    } catch {
+      avisar('No se pudo cambiar el acceso.', 'error');
+    }
+    setGuardando(false);
+  };
+
+  return (
+    <Modal
+      titulo={`Compartir a ${cliente.nombre} ${cliente.apellido}`}
+      descripcion="Quien lo reciba podrá ver y editar la ficha. El cliente sigue contando para tus cifras."
+      alCerrar={alCerrar}
+      pie={
+        <>
+          <button type="button" className="btn btn-outline" onClick={alCerrar}>
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => void guardar()}
+            disabled={guardando}
+          >
+            {guardando ? 'Guardando…' : 'Guardar acceso'}
+          </button>
+        </>
+      }
+    >
+      {candidatos.length === 0 ? (
+        <p className="text-sm muted">
+          No hay nadie más en el equipo todavía. Da de alta a otros vendedores desde Equipo.
+        </p>
+      ) : (
+        <ul className="compartir-lista">
+          {candidatos.map((u) => (
+            <li key={u.id}>
+              <label className="permiso">
+                <input
+                  type="checkbox"
+                  checked={seleccion.includes(u.id)}
+                  onChange={() => alternar(u.id)}
+                />
+                <span className="permiso-texto">
+                  <span className="permiso-titulo">
+                    {u.nombre}
+                    {u.id === perfil?.id ? ' (tú)' : ''}
+                  </span>
+                  <span className="text-sm muted-soft">{u.email}</span>
+                </span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      )}
     </Modal>
   );
 }

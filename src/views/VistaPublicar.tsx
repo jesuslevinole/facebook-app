@@ -29,7 +29,7 @@ interface Props {
   alIrA: (vista: Vista) => void;
 }
 
-type Filtro = 'pendientes' | 'publicados' | 'todos';
+type Filtro = 'porPublicar' | 'publicados' | 'todos';
 
 export default function VistaPublicar({
   clientes,
@@ -41,7 +41,7 @@ export default function VistaPublicar({
 }: Props) {
   const { avisar } = useAvisos();
   const { perfil, identidad, puede } = useSesion();
-  const [filtro, setFiltro] = useState<Filtro>('pendientes');
+  const [filtro, setFiltro] = useState<Filtro>('porPublicar');
   const [alternativas, setAlternativas] = useState<Record<string, string>>({});
   const [abierta, setAbierta] = useState<string | null>(null);
 
@@ -74,7 +74,7 @@ export default function VistaPublicar({
   const clientesHoy = clientes.filter((c) => c.createdAt.slice(0, 10) === fecha).length;
 
   const visibles = rutaFinal.filter((p) => {
-    if (filtro === 'pendientes') return !p.publicadoHoy;
+    if (filtro === 'porPublicar') return !p.publicadoHoy;
     if (filtro === 'publicados') return p.publicadoHoy;
     return true;
   });
@@ -155,19 +155,19 @@ export default function VistaPublicar({
           <p className="empty-title">Falta un paso para armar tu ruta</p>
           <p className="text-sm muted">
             {faltanGrupos
-              ? 'Todavía no hay grupos de Facebook cargados.'
+              ? 'Todavía no has marcado ningún grupo como tuyo. Ve a Grupos → Todos los grupos y marca en cuáles ya eres miembro.'
               : 'No hay ningún mensaje activo para publicar.'}
           </p>
-          {puedeArreglar ? (
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => alIrA(faltanGrupos ? 'grupos' : 'mensajes')}
-            >
-              {faltanGrupos ? 'Agregar grupos' : 'Crear mensaje'}
+          {faltanGrupos ? (
+            <button type="button" className="btn btn-primary" onClick={() => alIrA('grupos')}>
+              Ver todos los grupos
+            </button>
+          ) : puedeArreglar ? (
+            <button type="button" className="btn btn-primary" onClick={() => alIrA('mensajes')}>
+              Crear mensaje
             </button>
           ) : (
-            <p className="text-sm muted-soft">Pídele a un administrador que los cargue.</p>
+            <p className="text-sm muted-soft">Pídele a un administrador que cree los mensajes.</p>
           )}
         </div>
       </section>
@@ -214,14 +214,14 @@ export default function VistaPublicar({
       </article>
 
       <div className="barra-filtros">
-        {(['pendientes', 'publicados', 'todos'] as Filtro[]).map((f) => (
+        {(['porPublicar', 'publicados', 'todos'] as Filtro[]).map((f) => (
           <button
             key={f}
             type="button"
             className={`chip${filtro === f ? ' active' : ''}`}
             onClick={() => setFiltro(f)}
           >
-            {f === 'pendientes' && `Pendientes (${pendientes})`}
+            {f === 'porPublicar' && `Grupos para publicar (${pendientes})`}
             {f === 'publicados' && `Publicados (${publicadasHoy.length})`}
             {f === 'todos' && `Todos (${rutaFinal.length})`}
           </button>
@@ -242,11 +242,11 @@ export default function VistaPublicar({
         <div className="card">
           <div className="empty">
             <p className="empty-title">
-              {filtro === 'pendientes' ? 'Recorriste toda la ruta' : 'Nada por acá'}
+              {filtro === 'porPublicar' ? 'Recorriste toda la ruta' : 'Nada por acá'}
             </p>
             <p className="text-sm muted">
-              {filtro === 'pendientes'
-                ? 'Ya publicaste en todos los grupos disponibles hoy.'
+              {filtro === 'porPublicar'
+                ? 'Ya publicaste en todos tus grupos disponibles hoy.'
                 : 'Cambia el filtro para ver el resto de los grupos.'}
             </p>
           </div>

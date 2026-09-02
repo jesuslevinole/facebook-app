@@ -21,6 +21,7 @@ import type {
   Ajustes,
   Cliente,
   Grupo,
+  Membresia,
   Plantilla,
   Publicacion,
   Rol,
@@ -35,6 +36,7 @@ export const COL = {
   ajustes: 'ajustes',
   usuarios: 'usuarios',
   roles: 'roles',
+  membresias: 'membresias',
 } as const;
 
 type ConId = { id: string };
@@ -76,6 +78,11 @@ export const escucharUsuarios = (ok: (v: Usuario[]) => void, fail: (e: Error) =>
 export const escucharRoles = (ok: (v: Rol[]) => void, fail: (e: Error) => void) =>
   suscribir<Rol>(COL.roles, [orderBy('nombre')], ok, fail);
 
+/* Se traen las membresías de todo el equipo: son pocas y permiten mostrar
+   cuántos vendedores hay dentro de cada grupo. */
+export const escucharMembresias = (ok: (v: Membresia[]) => void, fail: (e: Error) => void) =>
+  suscribir<Membresia>(COL.membresias, [], ok, fail);
+
 /* ---- Escrituras ---- */
 
 type SinId<T> = Omit<T, 'id'>;
@@ -99,6 +106,21 @@ export const borrarPlantilla = (id: string) => deleteDoc(doc(db, COL.plantillas,
 export const registrarPublicacion = (datos: SinId<Publicacion>) =>
   addDoc(collection(db, COL.publicaciones), datos);
 export const borrarPublicacion = (id: string) => deleteDoc(doc(db, COL.publicaciones, id));
+
+/* ---- Membresías ---- */
+
+/** Id compuesto: unirse dos veces al mismo grupo no crea duplicados. */
+export const idMembresia = (uid: string, grupoId: string) => `${uid}_${grupoId}`;
+
+export const unirseAGrupo = (uid: string, grupoId: string) =>
+  setDoc(doc(db, COL.membresias, idMembresia(uid, grupoId)), {
+    uid,
+    grupoId,
+    createdAt: new Date().toISOString(),
+  });
+
+export const salirDeGrupo = (uid: string, grupoId: string) =>
+  deleteDoc(doc(db, COL.membresias, idMembresia(uid, grupoId)));
 
 /* ---- Usuarios y roles ---- */
 

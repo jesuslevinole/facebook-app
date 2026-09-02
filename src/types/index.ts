@@ -58,8 +58,10 @@ export interface Usuario {
 
 export interface Cliente {
   id: string;
-  /** UID del vendedor que lo registró. */
+  /** UID del vendedor que lo registró. Es el dueño del cliente. */
   uid: string;
+  /** UIDs con los que el dueño compartió la ficha. Vacío = privado. */
+  compartidoCon: string[];
   nombre: string;
   apellido: string;
   rut: string;
@@ -127,6 +129,21 @@ export interface Ajustes {
 export interface Identidad {
   vendedor: string;
   telefono: string;
+}
+
+/* Membresía de un vendedor en un grupo.
+
+   Estar en la app no significa estar dentro del grupo de Facebook: cada
+   vendedor tiene que unirse por su cuenta y esperar aprobación. Solo los
+   grupos donde ya es miembro entran en su ruta de publicación.
+
+   El id del documento es `uid_grupoId`, así unirse dos veces no crea
+   duplicados. */
+export interface Membresia {
+  id: string;
+  uid: string;
+  grupoId: string;
+  createdAt: string;
 }
 
 /** Una parada de la ruta de publicación del día. */

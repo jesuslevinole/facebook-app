@@ -8,13 +8,22 @@ import {
   AJUSTES_INICIALES,
   escucharClientes,
   escucharGrupos,
+  escucharMembresias,
   escucharPlantillas,
   escucharPublicaciones,
   escucharUsuarios,
   guardarAjustes,
   leerAjustes,
 } from './services/datos';
-import type { Ajustes, Cliente, Grupo, Plantilla, Publicacion, Usuario } from './types';
+import type {
+  Ajustes,
+  Cliente,
+  Grupo,
+  Membresia,
+  Plantilla,
+  Publicacion,
+  Usuario,
+} from './types';
 import { claveMenos, hoy } from './utils/fecha';
 import VistaLogin from './views/VistaLogin';
 import VistaPanel from './views/VistaPanel';
@@ -61,6 +70,7 @@ export default function App() {
   const [plantillas, setPlantillas] = useState<Plantilla[]>([]);
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [membresias, setMembresias] = useState<Membresia[]>([]);
   const [ajustes, setAjustes] = useState<Ajustes>(AJUSTES_INICIALES);
   const [cargando, setCargando] = useState(true);
   const [sinConexion, setSinConexion] = useState(!navigator.onLine);
@@ -86,6 +96,7 @@ export default function App() {
       escucharPlantillas(setPlantillas, fallar),
       escucharPublicaciones(desde, setPublicaciones, fallar),
       escucharUsuarios(setUsuarios, fallar),
+      escucharMembresias(setMembresias, fallar),
     ];
 
     return () => bajas.forEach((baja) => baja());
@@ -139,14 +150,28 @@ export default function App() {
     [misPublicaciones, fecha]
   );
 
+  /* La ruta de publicación solo considera los grupos donde el vendedor ya
+     entró. Estar en el catálogo no significa poder publicar. */
+  const misGrupos = useMemo(() => {
+    if (!perfil) return [];
+    const ids = new Set(membresias.filter((m) => m.uid === perfil.id).map((m) => m.grupoId));
+    return grupos.filter((g) => ids.has(g.id));
+  }, [grupos, membresias, perfil]);
+
   const verEquipo = puede('panel.verEquipo');
   const verTodosClientes = puede('clientes.verTodos');
 
-  const clientesVisibles = useMemo(
-    () => (verTodosClientes || !perfil ? clientes : clientes.filter((c) => c.uid === perfil.id)),
-    [clientes, verTodosClientes, perfil]
-  );
+  /* Un cliente es visible si lo registré yo, si me lo compartieron, o si mi
+     rol puede ver los de todo el equipo. */
+  const clientesVisibles = useMemo(() => {
+    if (!perfil) return [];
+    if (verTodosClientes) return clientes;
+    return clientes.filter(
+      (c) => c.uid === perfil.id || (c.compartidoCon ?? []).includes(perfil.id)
+    );
+  }, [clientes, verTodosClientes, perfil]);
 
+  /* El panel mide producción, no acceso: cuentan los que registré yo. */
   const clientesPanel = useMemo(
     () => (verEquipo || !perfil ? clientes : clientes.filter((c) => c.uid === perfil.id)),
     [clientes, verEquipo, perfil]
@@ -206,7 +231,7 @@ export default function App() {
         {vista === 'publicar' && (
           <VistaPublicar
             clientes={clientesVisibles}
-            grupos={grupos}
+            grupos={misGrupos}
             plantillas={plantillas}
             publicaciones={misPublicaciones}
             ajustes={ajustes}
@@ -228,6 +253,7 @@ export default function App() {
             clientes={clientes}
             grupos={grupos}
             publicaciones={publicaciones}
+            membresias={membresias}
             ajustes={ajustes}
           />
         )}
