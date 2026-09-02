@@ -18,6 +18,6 @@
    ─────────────────────────────────────────────────────────────── */
 
 /** Cambiar a `true` habilita el botón también en la app publicada. */
-const FORZAR_EN_PRODUCCION = false;
+const FORZAR_EN_PRODUCCION = true;
 
 export const ACCESO_INVITADO = import.meta.env.DEV || FORZAR_EN_PRODUCCION;
