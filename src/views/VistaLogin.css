@@ -132,3 +132,35 @@
     max-width: 420px;
   }
 }
+
+.acceso-separador {
+  position: relative;
+  text-align: center;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+.acceso-separador::before,
+.acceso-separador::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: calc(50% - 18px);
+  height: 1px;
+  background: var(--border);
+}
+
+.acceso-separador::before {
+  left: 0;
+}
+
+.acceso-separador::after {
+  right: 0;
+}
+
+.acceso-nota {
+  font-size: var(--t-xs);
+  line-height: 1.5;
+  color: var(--text-3);
+  text-align: center;
+}

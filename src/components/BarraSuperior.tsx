@@ -1,4 +1,4 @@
-import { CalendarDays, LogOut, Moon, Sun, WifiOff } from 'lucide-react';
+import { CalendarDays, LogOut, Moon, Sun, Unlock, WifiOff } from 'lucide-react';
 import { fechaLarga } from '../utils/fecha';
 import type { Tema } from '../hooks/useTema';
 import './BarraSuperior.css';
@@ -10,6 +10,7 @@ interface Props {
   tema: Tema;
   alAlternarTema: () => void;
   sinConexion: boolean;
+  esInvitado: boolean;
   alSalir: () => void;
 }
 
@@ -20,6 +21,7 @@ export default function BarraSuperior({
   tema,
   alAlternarTema,
   sinConexion,
+  esInvitado,
   alSalir,
 }: Props) {
   const iniciales = vendedor
@@ -40,6 +42,13 @@ export default function BarraSuperior({
       </div>
 
       <div className="superior-der">
+        {esInvitado && (
+          <span className="badge amber">
+            <Unlock size={12} />
+            Sin sesión
+          </span>
+        )}
+
         {sinConexion && (
           <span className="badge amber">
             <WifiOff size={12} />

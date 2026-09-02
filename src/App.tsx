@@ -44,7 +44,16 @@ export default function App() {
   const { tema, alternar } = useTema();
   const { avisar } = useAvisos();
   const sesion = useSesion();
-  const { perfil, rol, roles, puede, cargando: cargandoSesion, rechazo, cerrarSesion } = sesion;
+  const {
+    perfil,
+    rol,
+    roles,
+    puede,
+    cargando: cargandoSesion,
+    rechazo,
+    esInvitado,
+    cerrarSesion,
+  } = sesion;
 
   const [vista, setVista] = useState<Vista>('panel');
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -178,6 +187,7 @@ export default function App() {
           tema={tema}
           alAlternarTema={alternar}
           sinConexion={sinConexion}
+          esInvitado={esInvitado}
           alSalir={() => void cerrarSesion()}
         />
 

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Unlock } from 'lucide-react';
 import { useAvisos } from '../components/Avisos';
+import { useSesion } from '../context/Sesion';
+import { ACCESO_INVITADO } from '../config/acceso';
 import { ID_ADMIN, ROLES_BASE } from '../data/rolesBase';
 import {
   crearCuentaSinCambiarSesion,
@@ -21,6 +23,7 @@ interface Props {
 
 export default function VistaLogin({ rechazo }: Props) {
   const { avisar } = useAvisos();
+  const { entrarComoInvitado } = useSesion();
   const [modo, setModo] = useState<'acceso' | 'registro'>('acceso');
   const [permiteRegistro, setPermiteRegistro] = useState(false);
   const [nombre, setNombre] = useState('');
@@ -216,6 +219,24 @@ export default function VistaLogin({ rechazo }: Props) {
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => void restablecer()}>
               Olvidé mi clave
             </button>
+          )}
+
+          {ACCESO_INVITADO && (
+            <>
+              <span className="acceso-separador">o</span>
+              <button
+                type="button"
+                className="btn btn-outline btn-block"
+                onClick={entrarComoInvitado}
+              >
+                <Unlock size={16} />
+                Entrar sin sesión
+              </button>
+              <p className="acceso-nota">
+                Acceso completo sin autenticar, para revisar la app. No se registra a tu
+                nombre: lo que publiques o registres queda sin vendedor asignado.
+              </p>
+            </>
           )}
 
           {permiteRegistro && (
