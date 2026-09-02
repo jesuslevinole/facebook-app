@@ -15,7 +15,7 @@
    las reglas de la OPCIÓN B o C. Mientras esté en `true`, cualquiera con
    la URL entra como administrador.
    ─────────────────────────────────────────────────────────────── */
-export const SALTAR_LOGIN = false;
+export const SALTAR_LOGIN = true;
 
 /* ───────────────────────────────────────────────────────────────
    2 · BOTÓN "ENTRAR SIN SESIÓN"
