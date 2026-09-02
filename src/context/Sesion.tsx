@@ -17,7 +17,7 @@ import {
 import { entrarComoAnonimo, mensajeDeError, observarSesion, salir } from '../services/auth';
 import { ID_ADMIN, ROLES_BASE } from '../data/rolesBase';
 import { PERMISOS, type Identidad, type Permiso, type Rol, type Usuario } from '../types';
-import { ACCESO_INVITADO } from '../config/acceso';
+import { ACCESO_INVITADO, SALTAR_LOGIN } from '../config/acceso';
 
 interface Sesion {
   cargando: boolean;
@@ -62,12 +62,15 @@ function perfilInvitado(uid: string): Usuario {
 }
 
 export function ProveedorSesion({ children }: { children: ReactNode }) {
-  const [cargando, setCargando] = useState(true);
-  const [perfil, setPerfil] = useState<Usuario | null>(null);
+  /* Con SALTAR_LOGIN se entra directo, sin pasar por Auth. Ver config/acceso.ts. */
+  const [cargando, setCargando] = useState(!SALTAR_LOGIN);
+  const [perfil, setPerfil] = useState<Usuario | null>(
+    SALTAR_LOGIN ? perfilInvitado('configuracion') : null
+  );
   const [roles, setRoles] = useState<Rol[]>([]);
   const [rechazo, setRechazo] = useState('');
   const [uid, setUid] = useState<string | null>(null);
-  const [esInvitado, setEsInvitado] = useState(false);
+  const [esInvitado, setEsInvitado] = useState(SALTAR_LOGIN);
 
   useEffect(() => {
     const baja = escucharRoles(setRoles, () => setRoles([]));
@@ -75,6 +78,9 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    /* Con el login saltado no se observa la sesión: no hay ninguna. */
+    if (SALTAR_LOGIN) return;
+
     return observarSesion(async (usuarioAuth) => {
       if (!usuarioAuth) {
         setUid(null);
@@ -107,7 +113,19 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
 
            Esto cubre el caso de crear la cuenta desde la consola de Firebase,
            donde solo se genera el acceso, no el perfil. */
-        if (!encontrado && !(await hayUsuarios())) {
+        /* `hayUsuarios` hace un listado de la colección, y las reglas
+           estrictas lo deniegan. Si falla, se asume que ya hay equipo y se
+           salta la auto-configuración en vez de romper el acceso. */
+        let equipoVacio = false;
+        if (!encontrado) {
+          try {
+            equipoVacio = !(await hayUsuarios());
+          } catch {
+            equipoVacio = false;
+          }
+        }
+
+        if (!encontrado && equipoVacio) {
           await Promise.all(
             ROLES_BASE.map((r) =>
               crearRolConId(r.id, { ...r.datos, createdAt: new Date().toISOString() })
@@ -187,6 +205,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   }, [uid, esInvitado]);
 
   const cerrarSesion = useCallback(async () => {
+    if (SALTAR_LOGIN) return;
     await salir();
     setEsInvitado(false);
     setPerfil(null);
