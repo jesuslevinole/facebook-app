@@ -2,7 +2,17 @@
 
 export type Compania = 'Claro' | 'VTR';
 
-export type EstadoCliente = 'nuevo' | 'contactado' | 'agendado' | 'instalado' | 'perdido';
+/* Etapas del pipeline, en el orden en que avanza una venta. El orden importa:
+   define las columnas del tablero y se usa para medir en qué etapa se traba. */
+export type EstadoCliente =
+  | 'contactado'
+  | 'esperandoInfo'
+  | 'factible'
+  | 'noFactible'
+  | 'aprobado'
+  | 'esperaInstalacion'
+  | 'instalado'
+  | 'pagado';
 
 /* ---------- Acceso ---------- */
 
@@ -51,6 +61,10 @@ export interface Usuario {
   telefono: string;
   rolId: string;
   activo: boolean;
+  /* Horario de trabajo del vendedor. La ruta se ordena pensando en las horas
+     que realmente va a estar publicando, no en las 24 del día. */
+  horaInicio: number;
+  horaFin: number;
   createdAt: string;
 }
 
@@ -138,6 +152,12 @@ export interface Publicacion {
   comentarios: number;
   factibles: number;
   noFactibles: number;
+
+  /* Hora local de Chile en que se publicó (0–23). Permite aprender a qué
+     hora responde cada grupo para este vendedor en particular: un grupo
+     puede rendir a las 9 de la mañana para uno y a las 8 de la noche para
+     otro, según cuándo esté cada uno frente al teléfono. */
+  hora: number;
 }
 
 /** Reglas de ritmo comunes a todo el equipo. */
@@ -145,6 +165,14 @@ export interface Ajustes {
   metaDiaria: number;
   diasSinRepetir: number;
   cooldownHorasDefault: number;
+  /** Minutos de espera obligatoria entre dos publicaciones seguidas. */
+  minutosEntrePublicaciones: number;
+}
+
+/** Franja en la que cada vendedor trabaja. Vive en su perfil, no en Ajustes. */
+export interface Jornada {
+  horaInicio: number;
+  horaFin: number;
 }
 
 /** Nombre y teléfono que se insertan en el mensaje del vendedor. */

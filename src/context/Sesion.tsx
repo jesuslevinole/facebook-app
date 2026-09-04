@@ -57,6 +57,8 @@ function perfilInvitado(uid: string): Usuario {
     telefono: '',
     rolId: 'invitado',
     activo: true,
+    horaInicio: 9,
+    horaFin: 21,
     createdAt: '',
   };
 }
@@ -137,6 +139,8 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
             telefono: '',
             rolId: ID_ADMIN,
             activo: true,
+            horaInicio: 9,
+            horaFin: 21,
             createdAt: new Date().toISOString(),
           });
           encontrado = await leerUsuario(usuarioAuth.uid);

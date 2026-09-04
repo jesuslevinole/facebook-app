@@ -390,6 +390,8 @@ function FormularioUsuario({
           telefono,
           rolId,
           activo: true,
+          horaInicio: 9,
+          horaFin: 21,
           createdAt: new Date().toISOString(),
         });
         avisar(`Cuenta creada. Pásale a ${nombre.trim()} el correo y la clave inicial.`);

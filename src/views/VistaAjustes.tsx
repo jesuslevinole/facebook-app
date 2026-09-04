@@ -19,6 +19,8 @@ export default function VistaAjustes({ ajustes, plantillas, alGuardar }: Props) 
 
   const [nombre, setNombre] = useState(perfil?.nombre ?? '');
   const [telefono, setTelefono] = useState(perfil?.telefono ?? '');
+  const [horaInicio, setHoraInicio] = useState(perfil?.horaInicio ?? 9);
+  const [horaFin, setHoraFin] = useState(perfil?.horaFin ?? 21);
   const [guardandoPerfil, setGuardandoPerfil] = useState(false);
 
   const [borrador, setBorrador] = useState<Ajustes>(ajustes);
@@ -35,6 +37,8 @@ export default function VistaAjustes({ ajustes, plantillas, alGuardar }: Props) 
   useEffect(() => {
     setNombre(perfil?.nombre ?? '');
     setTelefono(perfil?.telefono ?? '');
+    setHoraInicio(perfil?.horaInicio ?? 9);
+    setHoraFin(perfil?.horaFin ?? 21);
   }, [perfil]);
 
   const cambiar = <K extends keyof Ajustes>(campo: K, valor: Ajustes[K]) =>
@@ -48,7 +52,7 @@ export default function VistaAjustes({ ajustes, plantillas, alGuardar }: Props) 
     }
     setGuardandoPerfil(true);
     try {
-      await editarUsuario(perfil.id, { nombre: nombre.trim(), telefono });
+      await editarUsuario(perfil.id, { nombre: nombre.trim(), telefono, horaInicio, horaFin });
       await refrescarPerfil();
       avisar('Perfil actualizado.');
     } catch {
@@ -79,7 +83,11 @@ export default function VistaAjustes({ ajustes, plantillas, alGuardar }: Props) 
     setCargandoBase(false);
   };
 
-  const perfilSinCambios = nombre === (perfil?.nombre ?? '') && telefono === (perfil?.telefono ?? '');
+  const perfilSinCambios =
+    nombre === (perfil?.nombre ?? '') &&
+    telefono === (perfil?.telefono ?? '') &&
+    horaInicio === (perfil?.horaInicio ?? 9) &&
+    horaFin === (perfil?.horaFin ?? 21);
   const reglasSinCambios = JSON.stringify(borrador) === JSON.stringify(ajustes);
 
   return (
@@ -117,6 +125,38 @@ export default function VistaAjustes({ ajustes, plantillas, alGuardar }: Props) 
               placeholder="+56 9 1234 5678"
               inputMode="tel"
             />
+          </label>
+        </div>
+
+        <div className="form-grid">
+          <label className="field">
+            <span className="field-label">Empiezo a publicar a las</span>
+            <input
+              className="input"
+              type="number"
+              min={0}
+              max={23}
+              value={horaInicio}
+              onChange={(e) => setHoraInicio(Math.min(23, Math.max(0, Number(e.target.value) || 0)))}
+              inputMode="numeric"
+            />
+            <span className="field-hint">Hora de Chile, formato 24 h.</span>
+          </label>
+
+          <label className="field">
+            <span className="field-label">Dejo de publicar a las</span>
+            <input
+              className="input"
+              type="number"
+              min={0}
+              max={23}
+              value={horaFin}
+              onChange={(e) => setHoraFin(Math.min(23, Math.max(0, Number(e.target.value) || 0)))}
+              inputMode="numeric"
+            />
+            <span className="field-hint">
+              La ruta prioriza los grupos que responden dentro de tu horario.
+            </span>
           </label>
         </div>
 
@@ -192,6 +232,25 @@ export default function VistaAjustes({ ajustes, plantillas, alGuardar }: Props) 
               <span className="field-hint">
                 En el mismo grupo. Con {activas} mensajes activos puedes cubrir {activas} días sin
                 repetir.
+              </span>
+            </label>
+
+            <label className="field">
+              <span className="field-label">Minutos entre publicaciones</span>
+              <input
+                className="input"
+                type="number"
+                min={0}
+                max={60}
+                value={borrador.minutosEntrePublicaciones}
+                onChange={(e) =>
+                  cambiar('minutosEntrePublicaciones', Math.max(0, Number(e.target.value) || 0))
+                }
+                inputMode="numeric"
+              />
+              <span className="field-hint">
+                Descanso obligatorio entre una publicación y la siguiente. Dos minutos es lo
+                mínimo razonable.
               </span>
             </label>
 

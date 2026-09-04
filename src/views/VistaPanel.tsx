@@ -4,6 +4,7 @@ import { TarjetaBarras, TarjetaDona, TarjetaKpi, type BarraDato } from '../compo
 import type { Vista } from '../components/Navegacion';
 import type { Ajustes, Cliente, Grupo, Publicacion } from '../types';
 import { claveMenos, diaMes, hoy, mesActual, ultimosDias } from '../utils/fecha';
+import { CERRADAS, etapaDe, normalizarEstado } from '../utils/estados';
 import './VistaPanel.css';
 
 interface Props {
@@ -18,13 +19,7 @@ interface Props {
   alIrA: (vista: Vista) => void;
 }
 
-const ESTADO_CLASE: Record<string, string> = {
-  nuevo: 'blue',
-  contactado: 'violet',
-  agendado: 'amber',
-  instalado: 'green',
-  perdido: 'red',
-};
+
 
 function mesAnterior(): string {
   const d = new Date();
@@ -55,8 +50,9 @@ export default function VistaPanel({
   const metricas = useMemo(() => {
     const delMes = clientes.filter((c) => c.createdAt.startsWith(mes));
     const delMesPrevio = clientes.filter((c) => c.createdAt.startsWith(previo));
-    const instaladosMes = delMes.filter((c) => c.estado === 'instalado');
-    const instaladosPrevio = delMesPrevio.filter((c) => c.estado === 'instalado');
+    const cerrado = (c: Cliente) => CERRADAS.includes(normalizarEstado(c.estado));
+    const instaladosMes = delMes.filter(cerrado);
+    const instaladosPrevio = delMesPrevio.filter(cerrado);
     const pubsHoy = publicaciones.filter((p) => p.fecha === fecha);
     const pubsAyer = publicaciones.filter((p) => p.fecha === claveMenos(1));
     const pubs30 = publicaciones.filter((p) => p.fecha >= hace30);
@@ -84,12 +80,17 @@ export default function VistaPanel({
   }, [clientes]);
 
   const porEstado = useMemo(() => {
-    const contar = (estado: string) => clientes.filter((c) => c.estado === estado).length;
+    const contar = (...estados: string[]) =>
+      clientes.filter((c) => estados.includes(normalizarEstado(c.estado))).length;
     return [
-      { etiqueta: 'Instalados', valor: contar('instalado'), color: 'var(--c3)' },
-      { etiqueta: 'Agendados', valor: contar('agendado'), color: 'var(--c2)' },
-      { etiqueta: 'En conversación', valor: contar('contactado') + contar('nuevo'), color: 'var(--c1)' },
-      { etiqueta: 'Perdidos', valor: contar('perdido'), color: 'var(--c5)' },
+      { etiqueta: 'Cerrados', valor: contar('instalado', 'pagado'), color: 'var(--c3)' },
+      { etiqueta: 'En proceso', valor: contar('aprobado', 'esperaInstalacion'), color: 'var(--c2)' },
+      {
+        etiqueta: 'En conversación',
+        valor: contar('contactado', 'esperandoInfo', 'factible'),
+        color: 'var(--c1)',
+      },
+      { etiqueta: 'No factibles', valor: contar('noFactible'), color: 'var(--c5)' },
     ];
   }, [clientes]);
 
@@ -142,7 +143,7 @@ export default function VistaPanel({
           pie="vs. mes anterior"
         />
         <TarjetaKpi
-          titulo="Instalados"
+          titulo="Cerrados"
           valor={metricas.instalados}
           icono={CheckCircle2}
           variacion={metricas.varInstalados}
@@ -173,7 +174,7 @@ export default function VistaPanel({
         <TarjetaDona
           titulo="Estado de la cartera"
           total={porEstado[0].valor}
-          subtitulo="Instalados a la fecha"
+          subtitulo="Ventas cerradas"
           segmentos={porEstado}
         />
       </section>
@@ -258,7 +259,9 @@ export default function VistaPanel({
                     <td className="muted truncate">{nombreGrupo(c.grupoId)}</td>
                     <td className="muted">{c.compania}</td>
                     <td>
-                      <span className={`badge ${ESTADO_CLASE[c.estado] ?? 'blue'}`}>{c.estado}</span>
+                      <span className={`badge ${etapaDe(c.estado).clase}`}>
+                        {etapaDe(c.estado).etiqueta}
+                      </span>
                     </td>
                   </tr>
                 ))}

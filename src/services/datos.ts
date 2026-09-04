@@ -183,6 +183,7 @@ export const AJUSTES_INICIALES: Ajustes = {
   metaDiaria: 8,
   diasSinRepetir: 7,
   cooldownHorasDefault: 20,
+  minutosEntrePublicaciones: 2,
 };
 
 export async function leerAjustes(): Promise<Ajustes> {

@@ -11,9 +11,13 @@ import {
   Trash2,
   UserPlus,
   Users,
+  KanbanSquare,
+  Table2,
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import Buscador from '../components/Buscador';
+import Pipeline from './Pipeline';
+import { ETAPAS, etapaDe, normalizarEstado } from '../utils/estados';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
 import { COMUNAS } from '../data/comunas';
@@ -30,14 +34,6 @@ interface Props {
   cargando: boolean;
 }
 
-const ESTADOS: { id: EstadoCliente; etiqueta: string; clase: string }[] = [
-  { id: 'nuevo', etiqueta: 'Nuevo', clase: 'blue' },
-  { id: 'contactado', etiqueta: 'Contactado', clase: 'violet' },
-  { id: 'agendado', etiqueta: 'Agendado', clase: 'amber' },
-  { id: 'instalado', etiqueta: 'Instalado', clase: 'green' },
-  { id: 'perdido', etiqueta: 'Perdido', clase: 'red' },
-];
-
 const VACIO: Omit<Cliente, 'id'> = {
   uid: '',
   compartidoCon: [],
@@ -50,7 +46,7 @@ const VACIO: Omit<Cliente, 'id'> = {
   telefono: '',
   compania: 'Claro',
   plan: '',
-  estado: 'nuevo',
+  estado: 'contactado',
   grupoId: null,
   notas: '',
   createdAt: '',
@@ -69,6 +65,7 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
   const [porBorrar, setPorBorrar] = useState<Cliente | null>(null);
   const [porCompartir, setPorCompartir] = useState<Cliente | null>(null);
   const [visibilidad, setVisibilidad] = useState<'todos' | 'mios' | 'compartidos'>('todos');
+  const [modo, setModo] = useState<'pipeline' | 'tabla'>('pipeline');
 
   const nombreVendedor = useMemo(() => {
     const mapa = new Map(usuarios.map((u) => [u.id, u.nombre]));
@@ -83,7 +80,7 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
   const filtrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
     return clientes.filter((c) => {
-      if (estadoFiltro !== 'todos' && c.estado !== estadoFiltro) return false;
+      if (estadoFiltro !== 'todos' && normalizarEstado(c.estado) !== estadoFiltro) return false;
       if (visibilidad === 'mios' && c.uid !== perfil?.id) return false;
       if (visibilidad === 'compartidos' && c.uid === perfil?.id) return false;
       if (grupoFiltro !== 'todos') {
@@ -151,7 +148,7 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
 
         <div className="filtro-buscador">
           <Buscador
-            opciones={ESTADOS.map((e) => ({ valor: e.id, etiqueta: e.etiqueta }))}
+            opciones={ETAPAS.map((e) => ({ valor: e.id, etiqueta: e.etiqueta }))}
             valor={estadoFiltro === 'todos' ? '' : estadoFiltro}
             alCambiar={(v) => setEstadoFiltro((v || 'todos') as EstadoCliente | 'todos')}
             vacio="Todos los estados"
@@ -183,6 +180,27 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
           />
         </div>
 
+        <div className="modo-vista">
+          <button
+            type="button"
+            className={`chip${modo === 'pipeline' ? ' active' : ''}`}
+            onClick={() => setModo('pipeline')}
+            title="Tablero por etapas"
+          >
+            <KanbanSquare size={14} />
+            Pipeline
+          </button>
+          <button
+            type="button"
+            className={`chip${modo === 'tabla' ? ' active' : ''}`}
+            onClick={() => setModo('tabla')}
+            title="Listado en tabla"
+          >
+            <Table2 size={14} />
+            Tabla
+          </button>
+        </div>
+
         {puedeEditar && (
           <button type="button" className="btn btn-primary" onClick={() => setCreando(true)}>
             <Plus size={16} />
@@ -191,6 +209,14 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
         )}
       </div>
 
+      {modo === 'pipeline' && !cargando && filtrados.length > 0 ? (
+        <Pipeline
+          clientes={filtrados}
+          grupos={grupos}
+          usuarios={usuarios}
+          alEditar={(c) => setEditando(c)}
+        />
+      ) : (
       <div className="card card-flush">
         {cargando ? (
           <ul className="stack-sm carga-lista">
@@ -236,7 +262,7 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
                 </thead>
                 <tbody>
                   {filtrados.map((c) => {
-                    const estado = ESTADOS.find((e) => e.id === c.estado) ?? ESTADOS[0];
+                    const estado = etapaDe(c.estado);
                     return (
                       <tr key={c.id}>
                         <td>
@@ -344,7 +370,7 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
             {/* En móvil la tabla se reemplaza por tarjetas legibles con el pulgar. */}
             <ul className="tarjetas-clientes">
               {filtrados.map((c) => {
-                const estado = ESTADOS.find((e) => e.id === c.estado) ?? ESTADOS[0];
+                const estado = etapaDe(c.estado);
                 return (
                   <li key={c.id} className="cliente-card">
                     <div className="row row-between">
@@ -443,6 +469,7 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
           </>
         )}
       </div>
+      )}
 
       {(creando || editando) && (
         <FormularioCliente
@@ -678,8 +705,8 @@ function FormularioCliente({ cliente, grupos, alCerrar, alGuardar }: FormProps) 
         <div className="field">
           <span className="field-label">Estado</span>
           <Buscador
-            opciones={ESTADOS.map((e) => ({ valor: e.id, etiqueta: e.etiqueta }))}
-            valor={datos.estado}
+            opciones={ETAPAS.map((e) => ({ valor: e.id, etiqueta: e.etiqueta, detalle: e.ayuda }))}
+            valor={normalizarEstado(datos.estado)}
             alCambiar={(v) => cambiar('estado', v as EstadoCliente)}
             permiteVacio={false}
           />

@@ -1,4 +1,11 @@
-import { useCallback, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import {
   BarChart3,
   ChevronDown,
@@ -12,6 +19,7 @@ import {
   Undo2,
   UserCheck,
   UserX,
+  Timer,
   Wand2,
 } from 'lucide-react';
 import Modal from '../components/Modal';
@@ -20,7 +28,7 @@ import { useSesion } from '../context/Sesion';
 import type { Vista } from '../components/Navegacion';
 import type { Ajustes, Cliente, Grupo, Parada, Plantilla, Publicacion } from '../types';
 import { borrarPublicacion, editarPublicacion, registrarPublicacion } from '../services/datos';
-import { faltaParaReinicio, horaCorta, hoy } from '../utils/fecha';
+import { faltaParaReinicio, horaCorta, horaDeChile, hoy } from '../utils/fecha';
 import { construirMensaje } from '../utils/mensaje';
 import { abrirEnPestana, copiar } from '../utils/portapapeles';
 import { construirRuta } from '../utils/rotacion';
@@ -58,6 +66,10 @@ export default function VistaPublicar({
   const [abierta, setAbierta] = useState<string | null>(null);
   const [midiendo, setMidiendo] = useState<Publicacion | null>(null);
   const [regenerando, setRegenerando] = useState(false);
+  /* Segundos que faltan para poder publicar de nuevo. Se recalcula cada
+     segundo contra la última publicación registrada, no con un temporizador
+     propio: si se recarga la página el bloqueo sigue en pie. */
+  const [esperaRestante, setEsperaRestante] = useState(0);
 
   const fecha = hoy();
   const activas = useMemo(() => plantillas.filter((p) => p.activo), [plantillas]);
@@ -84,6 +96,29 @@ export default function VistaPublicar({
   );
 
   const publicadasHoy = publicaciones.filter((p) => p.fecha === fecha);
+
+  const ultimaPublicacion = useMemo(
+    () => [...publicaciones].sort((a, b) => b.ts.localeCompare(a.ts))[0],
+    [publicaciones]
+  );
+
+  const esperaSegundos = Math.max(0, (ajustes.minutosEntrePublicaciones ?? 2) * 60);
+
+  useEffect(() => {
+    if (!ultimaPublicacion || esperaSegundos === 0) {
+      setEsperaRestante(0);
+      return;
+    }
+    const calcular = () => {
+      const pasados = (Date.now() - new Date(ultimaPublicacion.ts).getTime()) / 1000;
+      setEsperaRestante(Math.max(0, Math.ceil(esperaSegundos - pasados)));
+    };
+    calcular();
+    const id = window.setInterval(calcular, 1000);
+    return () => window.clearInterval(id);
+  }, [ultimaPublicacion, esperaSegundos]);
+
+  const enEspera = esperaRestante > 0;
   const pendientes = rutaFinal.filter((p) => !p.publicadoHoy).length;
   const clientesHoy = clientes.filter((c) => c.createdAt.slice(0, 10) === fecha).length;
 
@@ -104,6 +139,7 @@ export default function VistaPublicar({
       try {
         await registrarPublicacion({
           uid: perfil.id,
+          hora: horaDeChile(),
           likes: 0,
           comentarios: 0,
           factibles: 0,
@@ -126,6 +162,13 @@ export default function VistaPublicar({
   /* Copiar y abrir van en el mismo gesto, sin await entremedio: si se espera
      la promesa del portapapeles, Safari bloquea la ventana nueva. */
   const copiarYAbrir = (parada: Parada) => {
+    if (enEspera) {
+      avisar(
+        `Espera ${formatoEspera(esperaRestante)} antes de la próxima publicación. Publicar seguido es lo que gatilla el filtro de spam.`,
+        'info'
+      );
+      return;
+    }
     if (!parada.plantilla) {
       avisar('Este grupo no tiene mensaje disponible. Crea uno en Mensajes.', 'error');
       return;
@@ -284,6 +327,31 @@ export default function VistaPublicar({
         </button>
       </div>
 
+      {enEspera && filtro === 'sinPublicar' && (
+        <div className="espera card">
+          <span className="espera-icono">
+            <Timer size={18} />
+          </span>
+          <div className="espera-texto">
+            <p className="espera-cifra num">{formatoEspera(esperaRestante)}</p>
+            <p className="text-sm muted">
+              Descanso entre publicaciones. Publicar sin pausa es lo que hace que Facebook marque
+              la cuenta como spam.
+            </p>
+          </div>
+          <div className="progress espera-barra">
+            <span
+              className="progress-fill"
+              style={
+                {
+                  '--fill': `${100 - (esperaRestante / esperaSegundos) * 100}%`,
+                } as CSSProperties
+              }
+            />
+          </div>
+        </div>
+      )}
+
       {visibles.length === 0 ? (
         <div className="card">
           <div className="empty">
@@ -328,6 +396,7 @@ export default function VistaPublicar({
                       alDeshacer={() => registro && void deshacer(registro)}
                       alRotar={() => otroMensaje(parada)}
                       alMedir={() => registro && setMidiendo(registro)}
+                      enEspera={enEspera}
                     />
                   );
                 })}
@@ -394,9 +463,10 @@ export default function VistaPublicar({
                           type="button"
                           className="btn btn-primary btn-sm"
                           onClick={() => copiarYAbrir(parada)}
+                          disabled={enEspera}
                         >
                           <ExternalLink size={14} />
-                          Copiar y abrir
+                          {enEspera ? formatoEspera(esperaRestante) : 'Copiar y abrir'}
                         </button>
                         <button
                           type="button"
@@ -421,6 +491,12 @@ export default function VistaPublicar({
       )}
     </section>
   );
+}
+
+function formatoEspera(segundos: number): string {
+  const m = Math.floor(segundos / 60);
+  const s = segundos % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
 /* ---------- Registro de interacciones ---------- */
@@ -578,6 +654,8 @@ interface FilaProps {
   alDeshacer: () => void;
   alRotar: () => void;
   alMedir: () => void;
+  /** true mientras corre el descanso obligatorio entre publicaciones. */
+  enEspera: boolean;
 }
 
 function Fila({
@@ -592,6 +670,7 @@ function Fila({
   alDeshacer,
   alRotar,
   alMedir,
+  enEspera,
 }: FilaProps) {
   return (
     <>
@@ -660,7 +739,12 @@ function Fila({
             </div>
           ) : (
             <div className="row acciones-fila">
-              <button type="button" className="btn btn-primary btn-sm" onClick={alPublicar}>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={alPublicar}
+                disabled={enEspera}
+              >
                 <ExternalLink size={14} />
                 Copiar y abrir
               </button>

@@ -28,7 +28,7 @@ import type {
   Usuario,
 } from './types';
 import { MAX_RUTA } from './types';
-import { claveMenos, fechaRuta, hoy } from './utils/fecha';
+import { claveMenos, fechaRuta, horaDeChile, hoy } from './utils/fecha';
 import { armarRutaAutomatica } from './utils/puntajeGrupo';
 import VistaLogin from './views/VistaLogin';
 import VistaPanel from './views/VistaPanel';
@@ -214,7 +214,15 @@ export default function App() {
     if (misGrupos.length === 0) return;
 
     rutaGenerada.current = clave;
-    const ids = armarRutaAutomatica(misGrupos, misPublicaciones, hoy(), MAX_RUTA);
+    const jornada = { horaInicio: perfil.horaInicio ?? 9, horaFin: perfil.horaFin ?? 21 };
+    const ids = armarRutaAutomatica(
+      misGrupos,
+      misPublicaciones,
+      hoy(),
+      MAX_RUTA,
+      jornada,
+      horaDeChile()
+    );
     if (ids.length > 0) void guardarRuta(perfil.id, fechaRuta(), ids);
   }, [perfil, cargando, rutaDia, misGrupos, misPublicaciones]);
 
@@ -223,7 +231,15 @@ export default function App() {
      una ruta vacía en silencio: parecía que no hacía nada. */
   const regenerarRuta = useCallback(async (): Promise<number> => {
     if (!perfil) return 0;
-    const ids = armarRutaAutomatica(misGrupos, misPublicaciones, hoy(), MAX_RUTA);
+    const jornada = { horaInicio: perfil.horaInicio ?? 9, horaFin: perfil.horaFin ?? 21 };
+    const ids = armarRutaAutomatica(
+      misGrupos,
+      misPublicaciones,
+      hoy(),
+      MAX_RUTA,
+      jornada,
+      horaDeChile()
+    );
     await guardarRuta(perfil.id, fechaRuta(), ids);
     return ids.length;
   }, [perfil, misGrupos, misPublicaciones]);

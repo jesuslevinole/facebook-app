@@ -89,6 +89,8 @@ export default function VistaLogin({ rechazo }: Props) {
         telefono: '',
         rolId: ID_ADMIN,
         activo: true,
+        horaInicio: 9,
+        horaFin: 21,
         createdAt: new Date().toISOString(),
       });
 

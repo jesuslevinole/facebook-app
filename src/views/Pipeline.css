@@ -1,0 +1,194 @@
+.pipeline {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  /* El tablero es el único lugar donde se scrollea en horizontal a propósito. */
+  scroll-snap-type: x proximity;
+}
+
+.columna {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 268px;
+  flex: 0 0 268px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+  scroll-snap-align: start;
+  transition: border-color var(--speed), background var(--speed);
+}
+
+.columna.encima {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.columna-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.columna-titulo {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: var(--t-sm);
+  font-weight: 700;
+}
+
+.columna-conteo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: var(--t-xs);
+}
+
+.columna-ayuda {
+  font-size: var(--t-xs);
+  line-height: 1.45;
+  color: var(--text-3);
+  min-height: 32px;
+}
+
+.columna-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 80px;
+}
+
+.columna-vacia {
+  padding: 20px 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-md);
+  text-align: center;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+/* Puntos de color por etapa */
+.dot-blue {
+  background: var(--c1);
+}
+.dot-green {
+  background: var(--success);
+}
+.dot-red {
+  background: var(--danger);
+}
+.dot-amber {
+  background: var(--warn);
+}
+.dot-violet {
+  background: var(--violet);
+}
+
+/* ---------- Tarjeta ---------- */
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  cursor: grab;
+  transition: box-shadow var(--speed), transform var(--speed), opacity var(--speed);
+}
+
+.tarjeta:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.tarjeta:active {
+  cursor: grabbing;
+}
+
+.tarjeta.arrastrando {
+  opacity: 0.4;
+}
+
+.tarjeta-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tarjeta-asa {
+  flex: 0 0 auto;
+  color: var(--text-3);
+}
+
+.tarjeta-nombre {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+
+.tarjeta-editar,
+.tarjeta-fb {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+}
+
+.tarjeta-dato {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+.tarjeta-pie {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  min-width: 0;
+}
+
+.tarjeta-avanzar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--t-xs);
+  font-weight: 600;
+}
+
+.tarjeta-avanzar:hover {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+@media (max-width: 620px) {
+  .columna {
+    width: 240px;
+    flex: 0 0 240px;
+  }
+  .tarjeta-asa {
+    display: none;
+  }
+}

@@ -26,6 +26,7 @@ import {
   unirseAGrupo,
 } from '../services/datos';
 import { UMBRAL_DESCARTE } from '../utils/puntajeGrupo';
+import { CERRADAS, normalizarEstado } from '../utils/estados';
 import type {
   Ajustes,
   Cliente,
@@ -136,7 +137,7 @@ export default function VistaGrupos({
         grupo,
         publicaciones30: pubs30.length,
         clientesTotal: suyos.length,
-        instalados: suyos.filter((c) => c.estado === 'instalado').length,
+        instalados: suyos.filter((c) => CERRADAS.includes(normalizarEstado(c.estado))).length,
         ultimaFecha: pubs.map((p) => p.fecha).sort().pop() ?? null,
         publicadoHoy: pubs.some((p) => p.fecha === fecha && p.uid === perfil?.id),
         conversion: pubs30.length ? suyos30.length / pubs30.length : 0,

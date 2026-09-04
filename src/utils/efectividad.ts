@@ -11,6 +11,7 @@
    afirmar que un mensaje trajo exactamente N clientes. */
 
 import type { Cliente, Plantilla, Publicacion } from '../types';
+import { CERRADAS, normalizarEstado } from './estados';
 
 export interface Efectividad {
   plantillaId: string;
@@ -67,7 +68,7 @@ export function calcularEfectividad(
     const fila = mapa.get(anterior.plantillaId);
     if (!fila) continue;
     fila.clientes += 1;
-    if (cliente.estado === 'instalado') fila.instalados += 1;
+    if (CERRADAS.includes(normalizarEstado(cliente.estado))) fila.instalados += 1;
   }
 
   for (const fila of mapa.values()) {

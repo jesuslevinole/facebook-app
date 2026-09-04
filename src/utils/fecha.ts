@@ -87,6 +87,17 @@ export function diaMes(clave: string): string {
   return `${d}/${m}`;
 }
 
+/** Hora local de Chile (0–23) de un instante dado. */
+export function horaDeChile(fecha: Date = new Date()): number {
+  return Number(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: ZONA,
+      hour: '2-digit',
+      hour12: false,
+    }).format(fecha)
+  );
+}
+
 export function horasDesde(iso: string): number {
   return (Date.now() - new Date(iso).getTime()) / 36e5;
 }
