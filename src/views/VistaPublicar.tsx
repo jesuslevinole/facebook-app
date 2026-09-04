@@ -1,18 +1,25 @@
-import { useCallback, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import {
+  BarChart3,
   ChevronDown,
   Copy,
   ExternalLink,
+  Heart,
   Megaphone,
+  MessageCircle,
   RefreshCcw,
   Shuffle,
   Undo2,
+  UserCheck,
+  UserX,
+  Wand2,
 } from 'lucide-react';
+import Modal from '../components/Modal';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
 import type { Vista } from '../components/Navegacion';
 import type { Ajustes, Cliente, Grupo, Parada, Plantilla, Publicacion } from '../types';
-import { borrarPublicacion, registrarPublicacion } from '../services/datos';
+import { borrarPublicacion, editarPublicacion, registrarPublicacion } from '../services/datos';
 import { faltaParaReinicio, horaCorta, hoy } from '../utils/fecha';
 import { construirMensaje } from '../utils/mensaje';
 import { abrirEnPestana, copiar } from '../utils/portapapeles';
@@ -29,6 +36,7 @@ interface Props {
   publicaciones: Publicacion[];
   ajustes: Ajustes;
   alIrA: (vista: Vista) => void;
+  alRegenerarRuta: () => Promise<void>;
 }
 
 type Filtro = 'porPublicar' | 'publicados' | 'todos';
@@ -41,12 +49,15 @@ export default function VistaPublicar({
   publicaciones,
   ajustes,
   alIrA,
+  alRegenerarRuta,
 }: Props) {
   const { avisar } = useAvisos();
   const { perfil, identidad, puede } = useSesion();
   const [filtro, setFiltro] = useState<Filtro>('porPublicar');
   const [alternativas, setAlternativas] = useState<Record<string, string>>({});
   const [abierta, setAbierta] = useState<string | null>(null);
+  const [midiendo, setMidiendo] = useState<Publicacion | null>(null);
+  const [regenerando, setRegenerando] = useState(false);
 
   const fecha = hoy();
   const activas = useMemo(() => plantillas.filter((p) => p.activo), [plantillas]);
@@ -93,6 +104,10 @@ export default function VistaPublicar({
       try {
         await registrarPublicacion({
           uid: perfil.id,
+          likes: 0,
+          comentarios: 0,
+          factibles: 0,
+          noFactibles: 0,
           grupoId: parada.grupo.id,
           grupoNombre: parada.grupo.nombre,
           plantillaId: parada.plantilla.id,
@@ -245,7 +260,22 @@ export default function VistaPublicar({
           disabled={Object.keys(alternativas).length === 0}
         >
           <RefreshCcw size={14} />
-          Restaurar sugerencias
+          Restaurar mensajes
+        </button>
+
+        <button
+          type="button"
+          className="btn btn-soft btn-sm"
+          onClick={async () => {
+            setRegenerando(true);
+            await alRegenerarRuta();
+            setRegenerando(false);
+            avisar('Ruta recalculada con los grupos que mejor responden.');
+          }}
+          disabled={regenerando}
+        >
+          <Wand2 size={14} />
+          {regenerando ? 'Calculando…' : 'Rearmar ruta'}
         </button>
       </div>
 
@@ -292,6 +322,7 @@ export default function VistaPublicar({
                       alCopiar={() => soloCopiar(parada)}
                       alDeshacer={() => registro && void deshacer(registro)}
                       alRotar={() => otroMensaje(parada)}
+                      alMedir={() => registro && setMidiendo(registro)}
                     />
                   );
                 })}
@@ -337,6 +368,14 @@ export default function VistaPublicar({
                         </button>
                         <button
                           type="button"
+                          className="btn btn-outline btn-sm"
+                          onClick={() => setMidiendo(registro)}
+                        >
+                          <BarChart3 size={14} />
+                          Medir
+                        </button>
+                        <button
+                          type="button"
                           className="btn btn-ghost btn-sm"
                           onClick={() => void deshacer(registro)}
                         >
@@ -371,7 +410,152 @@ export default function VistaPublicar({
           </ul>
         </div>
       )}
+
+      {midiendo && (
+        <ModalInteracciones publicacion={midiendo} alCerrar={() => setMidiendo(null)} />
+      )}
     </section>
+  );
+}
+
+/* ---------- Registro de interacciones ---------- */
+
+function ModalInteracciones({
+  publicacion,
+  alCerrar,
+}: {
+  publicacion: Publicacion;
+  alCerrar: () => void;
+}) {
+  const { avisar } = useAvisos();
+  const [likes, setLikes] = useState(publicacion.likes ?? 0);
+  const [comentarios, setComentarios] = useState(publicacion.comentarios ?? 0);
+  const [factibles, setFactibles] = useState(publicacion.factibles ?? 0);
+  const [noFactibles, setNoFactibles] = useState(publicacion.noFactibles ?? 0);
+  const [guardando, setGuardando] = useState(false);
+
+  const guardar = async () => {
+    setGuardando(true);
+    try {
+      await editarPublicacion(publicacion.id, { likes, comentarios, factibles, noFactibles });
+      avisar('Interacciones registradas. Cuentan para armar la ruta de mañana.');
+      alCerrar();
+    } catch {
+      avisar('No se pudieron guardar las interacciones.', 'error');
+    }
+    setGuardando(false);
+  };
+
+  return (
+    <Modal
+      titulo={`Interacciones en ${publicacion.grupoNombre}`}
+      descripcion="Revisa la publicación en Facebook y anota lo que dejó. Es el dato con el que se decide qué grupos entran en la ruta."
+      alCerrar={alCerrar}
+      pie={
+        <>
+          <button type="button" className="btn btn-outline" onClick={alCerrar}>
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => void guardar()}
+            disabled={guardando}
+          >
+            {guardando ? 'Guardando…' : 'Guardar'}
+          </button>
+        </>
+      }
+    >
+      <div className="contadores">
+        <Contador
+          icono={<Heart size={16} />}
+          etiqueta="Me gusta"
+          ayuda="Reacciones de cualquier tipo."
+          valor={likes}
+          alCambiar={setLikes}
+        />
+        <Contador
+          icono={<MessageCircle size={16} />}
+          etiqueta="Comentarios"
+          ayuda="Sin contar tus propias respuestas."
+          valor={comentarios}
+          alCambiar={setComentarios}
+        />
+        <Contador
+          icono={<UserCheck size={16} />}
+          etiqueta="Contactos aprovechables"
+          ayuda="Escribieron y sí se les puede vender."
+          valor={factibles}
+          alCambiar={setFactibles}
+          destacado
+        />
+        <Contador
+          icono={<UserX size={16} />}
+          etiqueta="Contactos sin cobertura"
+          ayuda="Escribieron pero no se puede concretar."
+          valor={noFactibles}
+          alCambiar={setNoFactibles}
+        />
+      </div>
+
+      <p className="field-hint contadores-nota">
+        La proporción entre aprovechables y sin cobertura es lo que más pesa: un grupo con dos
+        contactos útiles vale más que uno con diez que no dan.
+      </p>
+    </Modal>
+  );
+}
+
+function Contador({
+  icono,
+  etiqueta,
+  ayuda,
+  valor,
+  alCambiar,
+  destacado = false,
+}: {
+  icono: ReactNode;
+  etiqueta: string;
+  ayuda: string;
+  valor: number;
+  alCambiar: (v: number) => void;
+  destacado?: boolean;
+}) {
+  return (
+    <div className={`contador${destacado ? ' destacado' : ''}`}>
+      <span className="contador-icono">{icono}</span>
+      <span className="contador-texto">
+        <span className="contador-etiqueta">{etiqueta}</span>
+        <span className="text-sm muted-soft">{ayuda}</span>
+      </span>
+      <span className="contador-controles">
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={() => alCambiar(Math.max(0, valor - 1))}
+          aria-label={`Restar a ${etiqueta}`}
+        >
+          −
+        </button>
+        <input
+          className="input contador-campo"
+          type="number"
+          min={0}
+          value={valor}
+          onChange={(e) => alCambiar(Math.max(0, Number(e.target.value) || 0))}
+          inputMode="numeric"
+        />
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={() => alCambiar(valor + 1)}
+          aria-label={`Sumar a ${etiqueta}`}
+        >
+          +
+        </button>
+      </span>
+    </div>
   );
 }
 
@@ -388,6 +572,7 @@ interface FilaProps {
   alCopiar: () => void;
   alDeshacer: () => void;
   alRotar: () => void;
+  alMedir: () => void;
 }
 
 function Fila({
@@ -401,6 +586,7 @@ function Fila({
   alCopiar,
   alDeshacer,
   alRotar,
+  alMedir,
 }: FilaProps) {
   return (
     <>
@@ -428,6 +614,19 @@ function Fila({
           <span className={`badge ${parada.publicadoHoy ? 'green' : bloqueado ? 'amber' : 'blue'}`}>
             {parada.publicadoHoy && registro ? `Publicado ${horaCorta(registro.ts)}` : parada.motivo}
           </span>
+          {registro && (registro.likes || registro.comentarios || registro.factibles) ? (
+            <span className="row interacciones-mini">
+              <span title="Me gusta">
+                <Heart size={11} /> {registro.likes ?? 0}
+              </span>
+              <span title="Comentarios">
+                <MessageCircle size={11} /> {registro.comentarios ?? 0}
+              </span>
+              <span title="Contactos aprovechables">
+                <UserCheck size={11} /> {registro.factibles ?? 0}
+              </span>
+            </span>
+          ) : null}
         </td>
 
         <td className="cell-actions">
@@ -440,6 +639,15 @@ function Fila({
               >
                 <ExternalLink size={14} />
                 Abrir
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={alMedir}
+                title="Registrar likes, comentarios y contactos"
+              >
+                <BarChart3 size={14} />
+                Interacciones
               </button>
               <button type="button" className="icon-btn" onClick={alDeshacer} title="Deshacer registro">
                 <Undo2 size={16} />

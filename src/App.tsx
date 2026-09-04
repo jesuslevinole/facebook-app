@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BarraInferior, BarraLateral, vistasPermitidas, type Vista } from './components/Navegacion';
 import BarraSuperior from './components/BarraSuperior';
 import { useAvisos } from './components/Avisos';
@@ -27,7 +27,9 @@ import type {
   RutaDia,
   Usuario,
 } from './types';
+import { MAX_RUTA } from './types';
 import { claveMenos, fechaRuta, hoy } from './utils/fecha';
+import { armarRutaAutomatica } from './utils/puntajeGrupo';
 import VistaLogin from './views/VistaLogin';
 import VistaPanel from './views/VistaPanel';
 import VistaPublicar from './views/VistaPublicar';
@@ -196,6 +198,32 @@ export default function App() {
     return misGrupos.filter((g) => ids.has(g.id));
   }, [misGrupos, rutaDia]);
 
+  /* Armado automático de la ruta.
+
+     Se dispara una sola vez por jornada: cuando el documento del día todavía
+     no existe y ya hay datos cargados. Después de eso la ruta es editable a
+     mano sin que el sistema la vuelva a tocar — si se regenerara sola, cada
+     grupo que el vendedor quita reaparecería al recargar. */
+  const rutaGenerada = useRef<string>('');
+
+  useEffect(() => {
+    if (!perfil || cargando || rutaDia !== null) return;
+
+    const clave = `${perfil.id}_${fechaRuta()}`;
+    if (rutaGenerada.current === clave) return;
+    if (misGrupos.length === 0) return;
+
+    rutaGenerada.current = clave;
+    const ids = armarRutaAutomatica(misGrupos, misPublicaciones, hoy(), MAX_RUTA);
+    if (ids.length > 0) void guardarRuta(perfil.id, fechaRuta(), ids);
+  }, [perfil, cargando, rutaDia, misGrupos, misPublicaciones]);
+
+  const regenerarRuta = useCallback(async () => {
+    if (!perfil) return;
+    const ids = armarRutaAutomatica(misGrupos, misPublicaciones, hoy(), MAX_RUTA);
+    await guardarRuta(perfil.id, fechaRuta(), ids);
+  }, [perfil, misGrupos, misPublicaciones]);
+
   const verEquipo = puede('panel.verEquipo');
   const verTodosClientes = puede('clientes.verTodos');
 
@@ -272,6 +300,7 @@ export default function App() {
             grupos={gruposRuta}
             misGrupos={misGrupos}
             plantillas={plantillasVisibles}
+            alRegenerarRuta={regenerarRuta}
             publicaciones={misPublicaciones}
             ajustes={ajustes}
             alIrA={setVista}
@@ -297,6 +326,7 @@ export default function App() {
             ajustes={ajustes}
             ruta={rutaDia?.grupoIds ?? []}
             alCambiarRuta={cambiarRuta}
+            alRegenerarRuta={regenerarRuta}
           />
         )}
 

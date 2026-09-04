@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import {
   Check,
   Copy,
+  Wand2,
   ExternalLink,
   ListPlus,
   LogOut,
@@ -33,10 +34,11 @@ import type {
   Publicacion,
 } from '../types';
 import { MAX_RUTA } from '../types';
-import { claveMenos, diaMes, hoy } from '../utils/fecha';
+import { claveMenos, hoy } from '../utils/fecha';
 import { construirMensaje } from '../utils/mensaje';
 import { abrirEnPestana, copiar } from '../utils/portapapeles';
 import { elegirPlantilla, sugerirCodigo } from '../utils/rotacion';
+import { puntuarGrupos, type PuntajeGrupo } from '../utils/puntajeGrupo';
 import './VistaGrupos.css';
 
 interface Props {
@@ -50,6 +52,7 @@ interface Props {
   /** Ids de los grupos que ya están en la ruta de hoy. */
   ruta: string[];
   alCambiarRuta: (grupoIds: string[]) => Promise<void>;
+  alRegenerarRuta: () => Promise<void>;
 }
 
 interface Rendimiento {
@@ -62,6 +65,7 @@ interface Rendimiento {
   conversion: number;
   porcentaje: number;
   vendedoresDentro: number;
+  puntaje: PuntajeGrupo | undefined;
 }
 
 type Pestana = 'todos' | 'mios';
@@ -87,6 +91,7 @@ export default function VistaGrupos({
   ajustes,
   ruta,
   alCambiarRuta,
+  alRegenerarRuta,
 }: Props) {
   const { avisar } = useAvisos();
   const { perfil, puede, identidad } = useSesion();
@@ -114,6 +119,11 @@ export default function VistaGrupos({
     return mapa;
   }, [membresias]);
 
+  const puntajes = useMemo(
+    () => new Map(puntuarGrupos(grupos, publicaciones, fecha).map((p) => [p.grupo.id, p])),
+    [grupos, publicaciones, fecha]
+  );
+
   const rendimiento: Rendimiento[] = useMemo(() => {
     const filas = grupos.map((grupo) => {
       const pubs = publicaciones.filter((p) => p.grupoId === grupo.id);
@@ -131,14 +141,15 @@ export default function VistaGrupos({
         conversion: pubs30.length ? suyos30.length / pubs30.length : 0,
         porcentaje: 0,
         vendedoresDentro: vendedoresPorGrupo.get(grupo.id) ?? 0,
+        puntaje: puntajes.get(grupo.id),
       };
     });
 
     const tope = Math.max(1, ...filas.map((f) => f.clientesTotal));
     return filas
       .map((f) => ({ ...f, porcentaje: (f.clientesTotal / tope) * 100 }))
-      .sort((a, b) => b.clientesTotal - a.clientesTotal || b.publicaciones30 - a.publicaciones30);
-  }, [grupos, publicaciones, clientes, hace30, fecha, perfil, vendedoresPorGrupo]);
+      .sort((a, b) => (b.puntaje?.puntaje ?? 0) - (a.puntaje?.puntaje ?? 0));
+  }, [grupos, publicaciones, clientes, hace30, fecha, perfil, vendedoresPorGrupo, puntajes]);
 
   /* «Todos los grupos» muestra solo los que aún no son míos: al marcarse
      como miembro, el grupo desaparece de acá y pasa a «Mis grupos». */
@@ -377,6 +388,16 @@ export default function VistaGrupos({
 
         <button
           type="button"
+          className="btn btn-soft btn-sm"
+          onClick={() => void alRegenerarRuta()}
+          title="Recalcula la ruta con los grupos que mejor responden"
+        >
+          <Wand2 size={15} />
+          Rearmar automática
+        </button>
+
+        <button
+          type="button"
           className="btn btn-primary btn-sm"
           onClick={() => void agregarARuta()}
           disabled={seleccion.length === 0}
@@ -426,10 +447,12 @@ export default function VistaGrupos({
                   <th className="col-num">Vendedores</th>
                   {pestana === 'mios' && (
                     <>
+                      <th className="col-num">Likes</th>
+                      <th className="col-num">Coment.</th>
+                      <th className="col-num">Útiles / no</th>
                       <th className="col-num">Clientes</th>
-                      <th className="col-num">Pub. 30d</th>
-                      <th className="col-num">Cli./pub.</th>
-                      <th>Última</th>
+                      <th className="col-num">Pub.</th>
+                      <th>Estado</th>
                     </>
                   )}
                   <th className="cell-actions">Acciones</th>
@@ -452,6 +475,7 @@ export default function VistaGrupos({
                         <span className="row">
                           <span className="code-tag">{r.grupo.codigo}</span>
                           {enRuta.has(r.grupo.id) && <span className="badge blue">En ruta</span>}
+                          {r.puntaje?.descartado && <span className="badge red">Sin respuesta</span>}
                           {r.publicadoHoy && <span className="badge green">Publicado hoy</span>}
                           {!r.grupo.activo && <span className="badge">En pausa</span>}
                         </span>
@@ -465,6 +489,15 @@ export default function VistaGrupos({
 
                     {pestana === 'mios' && (
                       <>
+                        <td className="col-num num">{r.puntaje?.likes ?? 0}</td>
+                        <td className="col-num num">{r.puntaje?.comentarios ?? 0}</td>
+                        <td className="col-num">
+                          <span className="ratio">
+                            <span className="ratio-buenos num">{r.puntaje?.factibles ?? 0}</span>
+                            <span className="muted-soft">/</span>
+                            <span className="muted num">{r.puntaje?.noFactibles ?? 0}</span>
+                          </span>
+                        </td>
                         <td className="col-num">
                           <span className="barra-mini">
                             <span className="num">{r.clientesTotal}</span>
@@ -476,9 +509,18 @@ export default function VistaGrupos({
                             </span>
                           </span>
                         </td>
-                        <td className="col-num num">{r.publicaciones30}</td>
-                        <td className="col-num num">{r.conversion.toFixed(2)}</td>
-                        <td className="muted">{r.ultimaFecha ? diaMes(r.ultimaFecha) : 'Nunca'}</td>
+                        <td className="col-num num">{r.puntaje?.publicaciones ?? 0}</td>
+                        <td>
+                          {r.puntaje?.descartado ? (
+                            <span className="badge red" title={r.puntaje.motivo}>
+                              Descartado
+                            </span>
+                          ) : r.puntaje?.porProbar ? (
+                            <span className="badge">{r.puntaje.motivo}</span>
+                          ) : (
+                            <span className="text-sm muted-soft">{r.puntaje?.motivo}</span>
+                          )}
+                        </td>
                       </>
                     )}
 

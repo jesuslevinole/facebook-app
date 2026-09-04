@@ -140,7 +140,33 @@ cuenta de correo se elimina aparte, desde la consola de Firebase.
 - Los clientes tienen dueño (`uid`), y quien no tenga `clientes.verTodos` solo
   ve los suyos.
 
-## 7. Pendiente de decidir
+## 7. Cómo se arma la ruta automática
+
+Cada día, la primera vez que el vendedor abre la app, la ruta se genera sola
+puntuando sus grupos (`src/utils/puntajeGrupo.ts`). Una vez creada no se vuelve
+a tocar: si se regenerara, cada grupo que el vendedor quita reaparecería al
+recargar. El botón «Rearmar automática» la recalcula a mano.
+
+Los criterios, por peso:
+
+| Peso | Criterio |
+|---|---|
+| 55 | Proporción de contactos aprovechables sobre el total de contactos. |
+| 30 | Interacciones por publicación (likes + comentarios + contactos). |
+| 10 | Tamaño del grupo, normalizado contra el más grande. |
+| ~6 | Días sin publicar, para que la ruta no se reduzca a los mismos cinco. |
+
+**Regla de descarte:** diez publicaciones sin una sola interacción y el grupo
+sale de la ruta automática. Sigue en el catálogo y se puede agregar a mano.
+
+**Grupos sin historial** (menos de tres publicaciones) reciben un puntaje
+intermedio de exploración. Sin eso, un grupo nuevo nunca se probaría y el
+sistema quedaría encerrado en los que ya conoce.
+
+Los datos de interacción no salen de ninguna API: Facebook no los expone. Se
+cargan a mano desde el botón «Interacciones» de cada publicación ya hecha.
+
+## 8. Pendiente de decidir
 
 - **Registro automático al publicar.** Hoy la publicación se registra al tocar
   *Copiar y abrir grupo*, asumiendo que la publicación se concreta. Si el

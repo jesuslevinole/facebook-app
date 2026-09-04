@@ -124,6 +124,20 @@ export interface Publicacion {
   fecha: string;
   ts: string;
   textoUsado: string;
+
+  /* Interacciones que dejó la publicación. Se cargan a mano después de
+     revisar el grupo — Facebook no las entrega a ninguna API pública, así
+     que el dato entra por el botón «Registrar interacciones».
+
+     `factibles` son los que escribieron y sí tienen cobertura o pueden
+     contratar; `noFactibles`, los que escribieron pero no dieron. La
+     proporción entre ambos es el criterio que más pesa al armar la ruta:
+     un grupo que trae diez consultas inviables vale menos que uno que trae
+     dos aprovechables. */
+  likes: number;
+  comentarios: number;
+  factibles: number;
+  noFactibles: number;
 }
 
 /** Reglas de ritmo comunes a todo el equipo. */

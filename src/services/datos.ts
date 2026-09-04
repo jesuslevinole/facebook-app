@@ -108,6 +108,8 @@ export const borrarPlantilla = (id: string) => deleteDoc(doc(db, COL.plantillas,
 export const registrarPublicacion = (datos: SinId<Publicacion>) =>
   addDoc(collection(db, COL.publicaciones), datos);
 export const borrarPublicacion = (id: string) => deleteDoc(doc(db, COL.publicaciones, id));
+export const editarPublicacion = (id: string, datos: Partial<Publicacion>) =>
+  updateDoc(doc(db, COL.publicaciones, id), datos);
 
 /* ---- Ruta diaria ---- */
 
