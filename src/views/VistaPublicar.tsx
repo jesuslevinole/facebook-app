@@ -39,7 +39,7 @@ interface Props {
   alRegenerarRuta: () => Promise<number>;
 }
 
-type Filtro = 'porPublicar' | 'publicados' | 'todos';
+type Filtro = 'sinPublicar' | 'publicados';
 
 export default function VistaPublicar({
   clientes,
@@ -53,7 +53,7 @@ export default function VistaPublicar({
 }: Props) {
   const { avisar } = useAvisos();
   const { perfil, identidad, puede } = useSesion();
-  const [filtro, setFiltro] = useState<Filtro>('porPublicar');
+  const [filtro, setFiltro] = useState<Filtro>('sinPublicar');
   const [alternativas, setAlternativas] = useState<Record<string, string>>({});
   const [abierta, setAbierta] = useState<string | null>(null);
   const [midiendo, setMidiendo] = useState<Publicacion | null>(null);
@@ -87,11 +87,11 @@ export default function VistaPublicar({
   const pendientes = rutaFinal.filter((p) => !p.publicadoHoy).length;
   const clientesHoy = clientes.filter((c) => c.createdAt.slice(0, 10) === fecha).length;
 
-  const visibles = rutaFinal.filter((p) => {
-    if (filtro === 'porPublicar') return !p.publicadoHoy;
-    if (filtro === 'publicados') return p.publicadoHoy;
-    return true;
-  });
+  /* Dos listas excluyentes: al registrar una publicación el grupo sale de
+     «Sin publicar» y aparece en «Publicados» sin que haya que recargar. */
+  const visibles = rutaFinal.filter((p) =>
+    filtro === 'sinPublicar' ? !p.publicadoHoy : p.publicadoHoy
+  );
 
   const publicacionDelGrupo = useCallback(
     (grupoId: string) => publicadasHoy.find((p) => p.grupoId === grupoId),
@@ -132,7 +132,7 @@ export default function VistaPublicar({
     }
     copiar(parada.texto);
     abrirEnPestana(parada.grupo.url);
-    avisar(`Mensaje copiado. Pega en ${parada.grupo.nombre} y publica.`);
+    avisar(`Mensaje copiado. ${parada.grupo.nombre} pasó a «Publicados».`);
     void registrar(parada);
   };
 
@@ -233,23 +233,23 @@ export default function VistaPublicar({
             />
           </div>
           <p className="text-sm muted">
-            Sigue la tabla de arriba hacia abajo. La ruta se vacía en {reinicio.horas} h{' '}
-            {reinicio.minutos} min, a las 11:59 pm de Venezuela.
+            {filtro === 'publicados'
+              ? 'Revisa cada publicación en Facebook y anota sus interacciones: es lo que decide qué grupos entran mañana.'
+              : `Sigue la tabla de arriba hacia abajo. La ruta se vacía en ${reinicio.horas} h ${reinicio.minutos} min, a las 11:59 pm de Venezuela.`}
           </p>
         </div>
       </article>
 
       <div className="barra-filtros">
-        {(['porPublicar', 'publicados', 'todos'] as Filtro[]).map((f) => (
+        {(['sinPublicar', 'publicados'] as Filtro[]).map((f) => (
           <button
             key={f}
             type="button"
             className={`chip${filtro === f ? ' active' : ''}`}
             onClick={() => setFiltro(f)}
           >
-            {f === 'porPublicar' && `Grupos para publicar (${pendientes})`}
+            {f === 'sinPublicar' && `Sin publicar (${pendientes})`}
             {f === 'publicados' && `Publicados (${publicadasHoy.length})`}
-            {f === 'todos' && `Todos (${rutaFinal.length})`}
           </button>
         ))}
         <span className="spacer" />
@@ -288,12 +288,12 @@ export default function VistaPublicar({
         <div className="card">
           <div className="empty">
             <p className="empty-title">
-              {filtro === 'porPublicar' ? 'Recorriste toda la ruta' : 'Nada por acá'}
+              {filtro === 'sinPublicar' ? 'Recorriste toda la ruta' : 'Todavía no publicas hoy'}
             </p>
             <p className="text-sm muted">
-              {filtro === 'porPublicar'
-                ? 'Ya publicaste en todos tus grupos disponibles hoy.'
-                : 'Cambia el filtro para ver el resto de los grupos.'}
+              {filtro === 'sinPublicar'
+                ? 'Ya publicaste en todos los grupos de la ruta de hoy. Vuelve mañana o agrega más grupos.'
+                : 'Cuando toques «Copiar y abrir», el grupo aparecerá acá para que registres sus interacciones.'}
             </p>
           </div>
         </div>
