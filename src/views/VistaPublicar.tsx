@@ -36,7 +36,7 @@ interface Props {
   publicaciones: Publicacion[];
   ajustes: Ajustes;
   alIrA: (vista: Vista) => void;
-  alRegenerarRuta: () => Promise<void>;
+  alRegenerarRuta: () => Promise<number>;
 }
 
 type Filtro = 'porPublicar' | 'publicados' | 'todos';
@@ -268,9 +268,14 @@ export default function VistaPublicar({
           className="btn btn-soft btn-sm"
           onClick={async () => {
             setRegenerando(true);
-            await alRegenerarRuta();
+            const total = await alRegenerarRuta();
             setRegenerando(false);
-            avisar('Ruta recalculada con los grupos que mejor responden.');
+            avisar(
+              total === 0
+                ? 'Ningún grupo califica todavía. Revisa Grupos → Mis grupos.'
+                : `Ruta recalculada con ${total} ${total === 1 ? 'grupo' : 'grupos'}.`,
+              total === 0 ? 'info' : 'ok'
+            );
           }}
           disabled={regenerando}
         >

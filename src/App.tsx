@@ -218,10 +218,14 @@ export default function App() {
     if (ids.length > 0) void guardarRuta(perfil.id, fechaRuta(), ids);
   }, [perfil, cargando, rutaDia, misGrupos, misPublicaciones]);
 
-  const regenerarRuta = useCallback(async () => {
-    if (!perfil) return;
+  /* Devuelve cuántos grupos entraron para que la vista pueda explicar el
+     resultado. Antes no devolvía nada y, sin membresías, el botón guardaba
+     una ruta vacía en silencio: parecía que no hacía nada. */
+  const regenerarRuta = useCallback(async (): Promise<number> => {
+    if (!perfil) return 0;
     const ids = armarRutaAutomatica(misGrupos, misPublicaciones, hoy(), MAX_RUTA);
     await guardarRuta(perfil.id, fechaRuta(), ids);
+    return ids.length;
   }, [perfil, misGrupos, misPublicaciones]);
 
   const verEquipo = puede('panel.verEquipo');

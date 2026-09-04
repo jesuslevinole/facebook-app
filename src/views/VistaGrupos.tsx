@@ -25,6 +25,7 @@ import {
   salirDeGrupo,
   unirseAGrupo,
 } from '../services/datos';
+import { UMBRAL_DESCARTE } from '../utils/puntajeGrupo';
 import type {
   Ajustes,
   Cliente,
@@ -52,7 +53,7 @@ interface Props {
   /** Ids de los grupos que ya están en la ruta de hoy. */
   ruta: string[];
   alCambiarRuta: (grupoIds: string[]) => Promise<void>;
-  alRegenerarRuta: () => Promise<void>;
+  alRegenerarRuta: () => Promise<number>;
 }
 
 interface Rendimiento {
@@ -208,6 +209,45 @@ export default function VistaGrupos({
     setSeleccion(faltantes.length === 0 ? [] : [...new Set([...seleccion, ...ids])]);
   };
 
+  /* Marcar 18 grupos de a uno era la razón por la que nadie llegaba a tener
+     membresías, y sin membresías la ruta automática no tiene con qué armarse. */
+  const unirseMasivo = async () => {
+    if (!perfil || seleccion.length === 0) return;
+    const nuevos = seleccion.filter((id) => !misGrupos.has(id));
+    if (nuevos.length === 0) {
+      avisar('Ya eras miembro de todos los seleccionados.', 'info');
+      return;
+    }
+    try {
+      await Promise.all(nuevos.map((id) => unirseAGrupo(perfil.id, id)));
+      setSeleccion([]);
+      avisar(
+        `${nuevos.length} ${nuevos.length === 1 ? 'grupo pasó' : 'grupos pasaron'} a «Mis grupos».`
+      );
+      setPestana('mios');
+    } catch {
+      avisar('No se pudieron marcar los grupos.', 'error');
+    }
+  };
+
+  const rearmar = async () => {
+    if (misGrupos.size === 0) {
+      avisar(
+        'Primero marca en qué grupos ya eres miembro: la ruta se arma solo con esos.',
+        'error'
+      );
+      setPestana('todos');
+      return;
+    }
+    const total = await alRegenerarRuta();
+    avisar(
+      total === 0
+        ? `Ningún grupo califica: todos superan las ${UMBRAL_DESCARTE} publicaciones sin interacción o están en pausa.`
+        : `Ruta armada con ${total} ${total === 1 ? 'grupo' : 'grupos'}, ordenados por rendimiento.`,
+      total === 0 ? 'info' : 'ok'
+    );
+  };
+
   const agregarARuta = async () => {
     const nuevos = seleccion.filter((id) => !enRuta.has(id));
     if (nuevos.length === 0) {
@@ -334,14 +374,20 @@ export default function VistaGrupos({
           <button
             type="button"
             className={`chip${pestana === 'todos' ? ' active' : ''}`}
-            onClick={() => setPestana('todos')}
+            onClick={() => {
+              setPestana('todos');
+              setSeleccion([]);
+            }}
           >
             Todos los grupos ({disponibles.length})
           </button>
           <button
             type="button"
             className={`chip${pestana === 'mios' ? ' active' : ''}`}
-            onClick={() => setPestana('mios')}
+            onClick={() => {
+              setPestana('mios');
+              setSeleccion([]);
+            }}
           >
             Mis grupos ({mios.length})
           </button>
@@ -386,25 +432,39 @@ export default function VistaGrupos({
           Ruta de hoy: {ruta.length}/{MAX_RUTA}
         </span>
 
-        <button
-          type="button"
-          className="btn btn-soft btn-sm"
-          onClick={() => void alRegenerarRuta()}
-          title="Recalcula la ruta con los grupos que mejor responden"
-        >
-          <Wand2 size={15} />
-          Rearmar automática
-        </button>
+        {pestana === 'todos' ? (
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={() => void unirseMasivo()}
+            disabled={seleccion.length === 0}
+          >
+            <Check size={15} />
+            Ya soy miembro ({seleccion.length})
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="btn btn-soft btn-sm"
+              onClick={() => void rearmar()}
+              title="Recalcula la ruta con los grupos que mejor responden"
+            >
+              <Wand2 size={15} />
+              Rearmar automática
+            </button>
 
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          onClick={() => void agregarARuta()}
-          disabled={seleccion.length === 0}
-        >
-          <ListPlus size={15} />
-          Agregar ruta
-        </button>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => void agregarARuta()}
+              disabled={seleccion.length === 0}
+            >
+              <ListPlus size={15} />
+              Agregar ruta ({seleccion.length})
+            </button>
+          </>
+        )}
       </div>
 
       <p className="text-sm muted">
