@@ -1,7 +1,9 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import {
   Check,
+  Copy,
   ExternalLink,
+  ListPlus,
   LogOut,
   Pause,
   Pencil,
@@ -11,6 +13,7 @@ import {
   UsersRound,
 } from 'lucide-react';
 import Modal from '../components/Modal';
+import Buscador from '../components/Buscador';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
 import { COMUNAS } from '../data/comunas';
@@ -21,9 +24,19 @@ import {
   salirDeGrupo,
   unirseAGrupo,
 } from '../services/datos';
-import type { Ajustes, Cliente, Grupo, Membresia, Publicacion } from '../types';
+import type {
+  Ajustes,
+  Cliente,
+  Grupo,
+  Membresia,
+  Plantilla,
+  Publicacion,
+} from '../types';
+import { MAX_RUTA } from '../types';
 import { claveMenos, diaMes, hoy } from '../utils/fecha';
-import { sugerirCodigo } from '../utils/rotacion';
+import { construirMensaje } from '../utils/mensaje';
+import { abrirEnPestana, copiar } from '../utils/portapapeles';
+import { elegirPlantilla, sugerirCodigo } from '../utils/rotacion';
 import './VistaGrupos.css';
 
 interface Props {
@@ -32,7 +45,11 @@ interface Props {
   /** Publicaciones de todo el equipo: el rendimiento del grupo es colectivo. */
   publicaciones: Publicacion[];
   membresias: Membresia[];
+  plantillas: Plantilla[];
   ajustes: Ajustes;
+  /** Ids de los grupos que ya están en la ruta de hoy. */
+  ruta: string[];
+  alCambiarRuta: (grupoIds: string[]) => Promise<void>;
 }
 
 interface Rendimiento {
@@ -50,6 +67,7 @@ interface Rendimiento {
 type Pestana = 'todos' | 'mios';
 
 const VACIO: Omit<Grupo, 'id'> = {
+  uid: '',
   nombre: '',
   url: '',
   codigo: '',
@@ -65,10 +83,15 @@ export default function VistaGrupos({
   grupos,
   publicaciones,
   membresias,
+  plantillas,
   ajustes,
+  ruta,
+  alCambiarRuta,
 }: Props) {
   const { avisar } = useAvisos();
-  const { perfil, puede } = useSesion();
+  const { perfil, puede, identidad } = useSesion();
+  const [seleccion, setSeleccion] = useState<string[]>([]);
+  const [comunaFiltro, setComunaFiltro] = useState('');
   const [pestana, setPestana] = useState<Pestana>('todos');
   const [editando, setEditando] = useState<Grupo | null>(null);
   const [creando, setCreando] = useState(false);
@@ -121,7 +144,83 @@ export default function VistaGrupos({
      como miembro, el grupo desaparece de acá y pasa a «Mis grupos». */
   const disponibles = rendimiento.filter((r) => !misGrupos.has(r.grupo.id));
   const mios = rendimiento.filter((r) => misGrupos.has(r.grupo.id));
-  const visibles = pestana === 'todos' ? disponibles : mios;
+  const base = pestana === 'todos' ? disponibles : mios;
+  const visibles = comunaFiltro ? base.filter((r) => r.grupo.comuna === comunaFiltro) : base;
+
+  const comunasEnUso = useMemo(() => {
+    const set = new Set(grupos.map((g) => g.comuna).filter(Boolean));
+    return [...set].sort((a, b) => a.localeCompare(b, 'es'));
+  }, [grupos]);
+
+  const enRuta = useMemo(() => new Set(ruta), [ruta]);
+
+  /* El mensaje que se copia al abrir un grupo es el mismo que la ruta le
+     asignaría hoy: así el texto coincide con el de la vista Publicar. */
+  const mensajeDe = (grupo: Grupo): string => {
+    const misPubs = publicaciones.filter((p) => p.uid === perfil?.id);
+    const historial = {
+      ultima: misPubs
+        .filter((p) => p.grupoId === grupo.id)
+        .sort((a, b) => b.ts.localeCompare(a.ts))[0],
+      porPlantilla: new Map(
+        misPubs
+          .filter((p) => p.grupoId === grupo.id)
+          .sort((a, b) => b.ts.localeCompare(a.ts))
+          .map((p) => [p.plantillaId, p])
+      ),
+    };
+    const ultimaGlobal = [...misPubs].sort((a, b) => b.ts.localeCompare(a.ts))[0];
+    const plantilla = elegirPlantilla(grupo, plantillas, historial, ultimaGlobal, ajustes, fecha);
+    return plantilla ? construirMensaje(plantilla, grupo, identidad, fecha) : '';
+  };
+
+  const copiarYAbrir = (grupo: Grupo) => {
+    const texto = mensajeDe(grupo);
+    if (!texto) {
+      abrirEnPestana(grupo.url);
+      avisar('No hay mensajes activos: se abrió el grupo sin copiar nada.', 'info');
+      return;
+    }
+    copiar(texto);
+    abrirEnPestana(grupo.url);
+    avisar('Mensaje copiado. Pega y publica.');
+  };
+
+  const alternarSeleccion = (grupoId: string) =>
+    setSeleccion((previos) =>
+      previos.includes(grupoId) ? previos.filter((p) => p !== grupoId) : [...previos, grupoId]
+    );
+
+  const seleccionarTodos = () => {
+    const ids = visibles.map((r) => r.grupo.id);
+    const faltantes = ids.filter((id) => !seleccion.includes(id));
+    setSeleccion(faltantes.length === 0 ? [] : [...new Set([...seleccion, ...ids])]);
+  };
+
+  const agregarARuta = async () => {
+    const nuevos = seleccion.filter((id) => !enRuta.has(id));
+    if (nuevos.length === 0) {
+      avisar('Los grupos elegidos ya están en la ruta.', 'info');
+      return;
+    }
+    const total = [...ruta, ...nuevos];
+    if (total.length > MAX_RUTA) {
+      avisar(
+        `La ruta admite ${MAX_RUTA} grupos y quedarían ${total.length}. Quita algunos o publica primero.`,
+        'error'
+      );
+      return;
+    }
+    try {
+      await alCambiarRuta(total);
+      setSeleccion([]);
+      avisar(
+        `${nuevos.length} ${nuevos.length === 1 ? 'grupo agregado' : 'grupos agregados'} a la ruta de hoy.`
+      );
+    } catch {
+      avisar('No se pudo actualizar la ruta.', 'error');
+    }
+  };
 
   const unirse = async (grupo: Grupo) => {
     if (!perfil) return;
@@ -147,10 +246,17 @@ export default function VistaGrupos({
   const guardar = async (datos: Omit<Grupo, 'id'>, id?: string) => {
     try {
       if (id) {
-        await editarGrupo(id, datos);
+        /* Editar un grupo heredado lo pasa a nombre de quien lo edita:
+           así el catálogo compartido se va repartiendo solo. */
+        const dueno = grupos.find((g) => g.id === id)?.uid;
+        await editarGrupo(id, dueno ? datos : { ...datos, uid: perfil?.id ?? '' });
         avisar('Grupo actualizado.');
       } else {
-        await crearGrupo({ ...datos, createdAt: new Date().toISOString() });
+        await crearGrupo({
+          ...datos,
+          uid: perfil?.id ?? '',
+          createdAt: new Date().toISOString(),
+        });
         avisar('Grupo agregado al catálogo.');
       }
       setCreando(false);
@@ -230,12 +336,54 @@ export default function VistaGrupos({
           </button>
         </div>
 
+        <span className="spacer" />
+
+        <div className="grupos-comuna">
+          <Buscador
+            opciones={comunasEnUso.map((c) => ({ valor: c, etiqueta: c }))}
+            valor={comunaFiltro}
+            alCambiar={setComunaFiltro}
+            vacio="Todas las comunas"
+          />
+        </div>
+
         {puedeEditar && (
           <button type="button" className="btn btn-primary" onClick={() => setCreando(true)}>
             <Plus size={16} />
             Nuevo grupo
           </button>
         )}
+      </div>
+
+      <div className="ruta-barra card">
+        <label className="row ruta-todos">
+          <input
+            type="checkbox"
+            checked={visibles.length > 0 && visibles.every((r) => seleccion.includes(r.grupo.id))}
+            onChange={seleccionarTodos}
+          />
+          <span className="text-sm">
+            {seleccion.length > 0
+              ? `${seleccion.length} seleccionados`
+              : 'Seleccionar todos los visibles'}
+          </span>
+        </label>
+
+        <span className="spacer" />
+
+        <span className="text-sm muted-soft">
+          Ruta de hoy: {ruta.length}/{MAX_RUTA}
+        </span>
+
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          onClick={() => void agregarARuta()}
+          disabled={seleccion.length === 0}
+        >
+          <ListPlus size={15} />
+          Agregar ruta
+        </button>
       </div>
 
       <p className="text-sm muted">
@@ -271,6 +419,7 @@ export default function VistaGrupos({
             <table className="table">
               <thead>
                 <tr>
+                  <th className="col-check" />
                   <th>Grupo</th>
                   <th>Comuna</th>
                   <th className="col-num">Miembros</th>
@@ -289,11 +438,20 @@ export default function VistaGrupos({
               <tbody>
                 {visibles.map((r) => (
                   <tr key={r.grupo.id} className={r.grupo.activo ? '' : 'fila-pausada'}>
+                    <td className="col-check">
+                      <input
+                        type="checkbox"
+                        checked={seleccion.includes(r.grupo.id)}
+                        onChange={() => alternarSeleccion(r.grupo.id)}
+                        aria-label={`Seleccionar ${r.grupo.nombre}`}
+                      />
+                    </td>
                     <td>
                       <div className="celda-nombre">
                         <span className="celda-fuerte truncate">{r.grupo.nombre}</span>
                         <span className="row">
                           <span className="code-tag">{r.grupo.codigo}</span>
+                          {enRuta.has(r.grupo.id) && <span className="badge blue">En ruta</span>}
                           {r.publicadoHoy && <span className="badge green">Publicado hoy</span>}
                           {!r.grupo.activo && <span className="badge">En pausa</span>}
                         </span>
@@ -328,15 +486,15 @@ export default function VistaGrupos({
                       <div className="row acciones-fila">
                         {pestana === 'todos' ? (
                           <>
-                            <a
+                            <button
+                              type="button"
                               className="btn btn-outline btn-sm"
-                              href={r.grupo.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              onClick={() => copiarYAbrir(r.grupo)}
+                              title="Copia el mensaje del día y abre el grupo"
                             >
                               <ExternalLink size={14} />
                               Ir al grupo
-                            </a>
+                            </button>
                             <button
                               type="button"
                               className="btn btn-primary btn-sm"
@@ -348,16 +506,15 @@ export default function VistaGrupos({
                           </>
                         ) : (
                           <>
-                            <a
-                              className="icon-btn"
-                              href={r.grupo.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label={`Abrir ${r.grupo.nombre}`}
-                              title="Abrir el grupo"
+                            <button
+                              type="button"
+                              className="btn btn-outline btn-sm"
+                              onClick={() => copiarYAbrir(r.grupo)}
+                              title="Copia el mensaje del día y abre el grupo"
                             >
-                              <ExternalLink size={16} />
-                            </a>
+                              <Copy size={14} />
+                              Copiar y abrir
+                            </button>
                             <button
                               type="button"
                               className="icon-btn"
@@ -409,6 +566,14 @@ export default function VistaGrupos({
             {visibles.map((r) => (
               <li key={r.grupo.id} className={`grupo-card${r.grupo.activo ? '' : ' pausada'}`}>
                 <div className="row row-between">
+                  <label className="ruta-check">
+                    <input
+                      type="checkbox"
+                      checked={seleccion.includes(r.grupo.id)}
+                      onChange={() => alternarSeleccion(r.grupo.id)}
+                      aria-label={`Seleccionar ${r.grupo.nombre}`}
+                    />
+                  </label>
                   <div className="celda-nombre">
                     <span className="celda-fuerte truncate">{r.grupo.nombre}</span>
                     <span className="row">
@@ -447,15 +612,14 @@ export default function VistaGrupos({
                 )}
 
                 <div className="grupo-card-acciones">
-                  <a
+                  <button
+                    type="button"
                     className="btn btn-outline btn-sm"
-                    href={r.grupo.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    onClick={() => copiarYAbrir(r.grupo)}
                   >
-                    <ExternalLink size={14} />
-                    Abrir
-                  </a>
+                    <Copy size={14} />
+                    Copiar y abrir
+                  </button>
                   {pestana === 'todos' ? (
                     <button
                       type="button"
@@ -675,21 +839,15 @@ function FormularioGrupo({ grupo, codigosUsados, cooldownDefault, alCerrar, alGu
           )}
         </label>
 
-        <label className="field">
+        <div className="field">
           <span className="field-label">Comuna principal</span>
-          <select
-            className="select"
-            value={datos.comuna}
-            onChange={(e) => cambiar('comuna', e.target.value)}
-          >
-            <option value="">Sin comuna específica</option>
-            {COMUNAS.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </label>
+          <Buscador
+            opciones={COMUNAS.map((c) => ({ valor: c, etiqueta: c }))}
+            valor={datos.comuna}
+            alCambiar={(v) => cambiar('comuna', v)}
+            vacio="Sin comuna específica"
+          />
+        </div>
 
         <label className="field">
           <span className="field-label">Miembros aproximados</span>

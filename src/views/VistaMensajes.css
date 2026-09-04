@@ -113,3 +113,23 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.mensaje-metricas {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.mensaje-metricas dd {
+  margin-top: 2px;
+  font-size: 19px;
+}
+
+.mensaje-barra {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

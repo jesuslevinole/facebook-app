@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { KeyRound, Plus, Shield, Trash2, UserCog, UserPlus } from 'lucide-react';
 import Modal from '../components/Modal';
+import Buscador from '../components/Buscador';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
 import { crearCuentaSinCambiarSesion, mensajeDeError, recuperarClave } from '../services/auth';
@@ -477,16 +478,15 @@ function FormularioUsuario({
           </label>
         )}
 
-        <label className="field">
+        <div className="field">
           <span className="field-label">Rol</span>
-          <select className="select" value={rolId} onChange={(e) => setRolId(e.target.value)}>
-            {roles.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.nombre}
-              </option>
-            ))}
-          </select>
-        </label>
+          <Buscador
+            opciones={roles.map((r) => ({ valor: r.id, etiqueta: r.nombre, detalle: r.descripcion }))}
+            valor={rolId}
+            alCambiar={setRolId}
+            vacio="Elige un rol"
+          />
+        </div>
 
         {!esNuevo && (
           <label className="field row usuarios-check">

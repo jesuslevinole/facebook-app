@@ -72,3 +72,15 @@
   flex-direction: column;
   gap: 8px;
 }
+
+.filtro-buscador {
+  width: 190px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 620px) {
+  .filtro-buscador {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+}

@@ -4,6 +4,11 @@
 
 const ZONA = 'America/Santiago';
 
+/* La ruta diaria se reinicia a las 11:59 pm hora de Venezuela, no de Chile.
+   Son zonas distintas (Caracas UTC-4, Santiago UTC-3 o -4 según la época),
+   así que la ruta puede cambiar de día una hora antes que las estadísticas. */
+const ZONA_RUTA = 'America/Caracas';
+
 /** YYYY-MM-DD en hora de Chile. */
 export function fechaClave(fecha: Date = new Date()): string {
   const partes = new Intl.DateTimeFormat('en-CA', {
@@ -28,6 +33,33 @@ export function claveMenos(dias: number): string {
 /** Clave YYYY-MM de hoy en Chile. */
 export function mesActual(): string {
   return hoy().slice(0, 7);
+}
+
+/** Clave YYYY-MM-DD en hora de Venezuela. Rige el vencimiento de la ruta. */
+export function fechaRuta(fecha: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZONA_RUTA,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(fecha);
+}
+
+/** Cuánto falta para que la ruta se vacíe, en horas y minutos. */
+export function faltaParaReinicio(): { horas: number; minutos: number } {
+  const ahora = new Date();
+  const enCaracas = new Intl.DateTimeFormat('en-GB', {
+    timeZone: ZONA_RUTA,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(ahora);
+  const [h, m] = enCaracas.split(':').map(Number);
+  const minutosRestantes = 24 * 60 - (h * 60 + m) - 1;
+  return {
+    horas: Math.floor(Math.max(0, minutosRestantes) / 60),
+    minutos: Math.max(0, minutosRestantes) % 60,
+  };
 }
 
 /** "lunes, 3 de agosto" */

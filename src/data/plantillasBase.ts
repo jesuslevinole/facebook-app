@@ -4,7 +4,7 @@
 
 import type { Plantilla } from '../types';
 
-export const PLANTILLAS_BASE: Omit<Plantilla, 'id' | 'createdAt'>[] = [
+export const PLANTILLAS_BASE: Omit<Plantilla, 'id' | 'createdAt' | 'uid'>[] = [
   {
     titulo: 'Oferta directa · fibra',
     tono: 'oferta',

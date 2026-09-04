@@ -80,6 +80,12 @@ export interface Cliente {
 
 export interface Grupo {
   id: string;
+  /* Dueño del grupo. Cada vendedor arma su propio catálogo: lo que uno
+     agrega no le aparece a los demás.
+
+     Cadena vacía = grupo heredado de cuando el catálogo era compartido.
+     Esos siguen visibles para todo el equipo hasta que alguien los edite. */
+  uid: string;
   nombre: string;
   url: string;
   /** Código corto que se inserta en el mensaje para atribuir clientes al grupo. */
@@ -96,6 +102,8 @@ export type TonoPlantilla = 'directo' | 'pregunta' | 'oferta' | 'testimonio' | '
 
 export interface Plantilla {
   id: string;
+  /** Dueño del mensaje. Vacío = heredado, visible para todos. Ver `Grupo.uid`. */
+  uid: string;
   titulo: string;
   /** Admite variables {codigo} {comuna} {grupo} {vendedor} {telefono} y spintax {hola|buenas}. */
   cuerpo: string;
@@ -145,6 +153,22 @@ export interface Membresia {
   grupoId: string;
   createdAt: string;
 }
+
+/* Ruta del día: los grupos que el vendedor se propuso recorrer hoy.
+
+   El id del documento es `uid_fecha`, con la fecha en hora de Venezuela.
+   Por eso la ruta se vacía sola al pasar la medianoche de Caracas: al día
+   siguiente el id ya no coincide y la app busca un documento que no existe.
+   No hace falta un proceso que borre nada. */
+export interface RutaDia {
+  id: string;
+  uid: string;
+  fecha: string;
+  grupoIds: string[];
+}
+
+/** Tope de grupos por ruta. Más que esto no se alcanza a recorrer en un día. */
+export const MAX_RUTA = 100;
 
 /** Una parada de la ruta de publicación del día. */
 export interface Parada {

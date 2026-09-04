@@ -15,7 +15,7 @@
    las reglas de la OPCIÓN B o C. Mientras esté en `true`, cualquiera con
    la URL entra como administrador.
    ─────────────────────────────────────────────────────────────── */
-export const SALTAR_LOGIN = true;
+export const SALTAR_LOGIN = false;
 
 /* ───────────────────────────────────────────────────────────────
    2 · BOTÓN "ENTRAR SIN SESIÓN"
@@ -28,6 +28,6 @@ export const SALTAR_LOGIN = true;
    Activo siempre en desarrollo. Para la app publicada, cambia la
    constante de abajo.
    ─────────────────────────────────────────────────────────────── */
-const FORZAR_EN_PRODUCCION = true;
+const FORZAR_EN_PRODUCCION = false;
 
 export const ACCESO_INVITADO = import.meta.env.DEV || FORZAR_EN_PRODUCCION;

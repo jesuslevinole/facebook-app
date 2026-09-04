@@ -13,7 +13,7 @@ import { useSesion } from '../context/Sesion';
 import type { Vista } from '../components/Navegacion';
 import type { Ajustes, Cliente, Grupo, Parada, Plantilla, Publicacion } from '../types';
 import { borrarPublicacion, registrarPublicacion } from '../services/datos';
-import { horaCorta, hoy } from '../utils/fecha';
+import { faltaParaReinicio, horaCorta, hoy } from '../utils/fecha';
 import { construirMensaje } from '../utils/mensaje';
 import { abrirEnPestana, copiar } from '../utils/portapapeles';
 import { construirRuta } from '../utils/rotacion';
@@ -23,6 +23,8 @@ interface Props {
   clientes: Cliente[];
   grupos: Grupo[];
   plantillas: Plantilla[];
+  /** Todos los grupos donde el vendedor es miembro (para el mensaje vacío). */
+  misGrupos: Grupo[];
   /** Ya viene filtrado a las publicaciones del vendedor en sesión. */
   publicaciones: Publicacion[];
   ajustes: Ajustes;
@@ -34,6 +36,7 @@ type Filtro = 'porPublicar' | 'publicados' | 'todos';
 export default function VistaPublicar({
   clientes,
   grupos,
+  misGrupos,
   plantillas,
   publicaciones,
   ajustes,
@@ -144,35 +147,43 @@ export default function VistaPublicar({
   };
 
   if (grupos.length === 0 || activas.length === 0) {
-    const faltanGrupos = grupos.length === 0;
-    const puedeArreglar = faltanGrupos ? puede('grupos.editar') : puede('mensajes.editar');
+    const sinMensajes = activas.length === 0;
+    const sinMembresias = misGrupos.length === 0;
     return (
       <section className="card">
         <div className="empty">
           <span className="empty-icon">
             <Megaphone size={22} />
           </span>
-          <p className="empty-title">Falta un paso para armar tu ruta</p>
-          <p className="text-sm muted">
-            {faltanGrupos
-              ? 'Todavía no has marcado ningún grupo como tuyo. Ve a Grupos → Todos los grupos y marca en cuáles ya eres miembro.'
-              : 'No hay ningún mensaje activo para publicar.'}
+          <p className="empty-title">
+            {sinMensajes ? 'Falta crear un mensaje' : 'Tu ruta de hoy está vacía'}
           </p>
-          {faltanGrupos ? (
-            <button type="button" className="btn btn-primary" onClick={() => alIrA('grupos')}>
-              Ver todos los grupos
-            </button>
-          ) : puedeArreglar ? (
-            <button type="button" className="btn btn-primary" onClick={() => alIrA('mensajes')}>
-              Crear mensaje
-            </button>
+          <p className="text-sm muted">
+            {sinMensajes
+              ? 'No hay ningún mensaje activo para publicar.'
+              : sinMembresias
+                ? 'Todavía no marcaste ningún grupo como tuyo. Ve a Grupos y marca en cuáles ya eres miembro.'
+                : 'Elige los grupos que vas a recorrer hoy con el botón «Agregar ruta».'}
+          </p>
+          {sinMensajes ? (
+            puede('mensajes.editar') ? (
+              <button type="button" className="btn btn-primary" onClick={() => alIrA('mensajes')}>
+                Crear mensaje
+              </button>
+            ) : (
+              <p className="text-sm muted-soft">Pídele a un administrador que cree los mensajes.</p>
+            )
           ) : (
-            <p className="text-sm muted-soft">Pídele a un administrador que cree los mensajes.</p>
+            <button type="button" className="btn btn-primary" onClick={() => alIrA('grupos')}>
+              Armar mi ruta
+            </button>
           )}
         </div>
       </section>
     );
   }
+
+  const reinicio = faltaParaReinicio();
 
   const avance = ajustes.metaDiaria
     ? Math.min(100, Math.round((publicadasHoy.length / ajustes.metaDiaria) * 100))
@@ -207,8 +218,8 @@ export default function VistaPublicar({
             />
           </div>
           <p className="text-sm muted">
-            Sigue la tabla de arriba hacia abajo. El orden se recalcula solo cada día y el mensaje
-            rota por grupo.
+            Sigue la tabla de arriba hacia abajo. La ruta se vacía en {reinicio.horas} h{' '}
+            {reinicio.minutos} min, a las 11:59 pm de Venezuela.
           </p>
         </div>
       </article>

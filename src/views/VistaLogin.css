@@ -164,3 +164,33 @@
   color: var(--text-3);
   text-align: center;
 }
+
+.acceso-volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 4px 8px 4px 4px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+
+.acceso-volver:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.acceso-exito {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--r-pill);
+  background: var(--success-soft);
+  color: var(--success);
+}

@@ -25,6 +25,7 @@ import type {
   Plantilla,
   Publicacion,
   Rol,
+  RutaDia,
   Usuario,
 } from '../types';
 
@@ -37,6 +38,7 @@ export const COL = {
   usuarios: 'usuarios',
   roles: 'roles',
   membresias: 'membresias',
+  rutas: 'rutas',
 } as const;
 
 type ConId = { id: string };
@@ -106,6 +108,28 @@ export const borrarPlantilla = (id: string) => deleteDoc(doc(db, COL.plantillas,
 export const registrarPublicacion = (datos: SinId<Publicacion>) =>
   addDoc(collection(db, COL.publicaciones), datos);
 export const borrarPublicacion = (id: string) => deleteDoc(doc(db, COL.publicaciones, id));
+
+/* ---- Ruta diaria ---- */
+
+export const idRuta = (uid: string, fecha: string) => `${uid}_${fecha}`;
+
+/* Solo se escucha la ruta de hoy. Las de días anteriores quedan en la base
+   pero nadie las lee: son el historial de lo que cada uno se propuso. */
+export const escucharRutaDelDia = (
+  uid: string,
+  fecha: string,
+  ok: (v: RutaDia | null) => void,
+  fail: (e: Error) => void
+) =>
+  onSnapshot(
+    doc(db, COL.rutas, idRuta(uid, fecha)),
+    (snap) =>
+      ok(snap.exists() ? ({ ...(snap.data() as object), id: snap.id } as RutaDia) : null),
+    (error) => fail(error)
+  );
+
+export const guardarRuta = (uid: string, fecha: string, grupoIds: string[]) =>
+  setDoc(doc(db, COL.rutas, idRuta(uid, fecha)), { uid, fecha, grupoIds });
 
 /* ---- Membresías ---- */
 

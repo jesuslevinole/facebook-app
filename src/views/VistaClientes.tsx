@@ -13,6 +13,7 @@ import {
   Users,
 } from 'lucide-react';
 import Modal from '../components/Modal';
+import Buscador from '../components/Buscador';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
 import { COMUNAS } from '../data/comunas';
@@ -148,42 +149,39 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
           />
         </div>
 
-        <select
-          className="select"
-          value={estadoFiltro}
-          onChange={(e) => setEstadoFiltro(e.target.value as EstadoCliente | 'todos')}
-        >
-          <option value="todos">Todos los estados</option>
-          {ESTADOS.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.etiqueta}
-            </option>
-          ))}
-        </select>
+        <div className="filtro-buscador">
+          <Buscador
+            opciones={ESTADOS.map((e) => ({ valor: e.id, etiqueta: e.etiqueta }))}
+            valor={estadoFiltro === 'todos' ? '' : estadoFiltro}
+            alCambiar={(v) => setEstadoFiltro((v || 'todos') as EstadoCliente | 'todos')}
+            vacio="Todos los estados"
+          />
+        </div>
 
-        <select
-          className="select"
-          value={visibilidad}
-          onChange={(e) => setVisibilidad(e.target.value as 'todos' | 'mios' | 'compartidos')}
-        >
-          <option value="todos">Míos y compartidos</option>
-          <option value="mios">Solo los míos</option>
-          <option value="compartidos">Compartidos conmigo</option>
-        </select>
+        <div className="filtro-buscador">
+          <Buscador
+            opciones={[
+              { valor: 'todos', etiqueta: 'Míos y compartidos' },
+              { valor: 'mios', etiqueta: 'Solo los míos' },
+              { valor: 'compartidos', etiqueta: 'Compartidos conmigo' },
+            ]}
+            valor={visibilidad}
+            alCambiar={(v) => setVisibilidad(v as 'todos' | 'mios' | 'compartidos')}
+            permiteVacio={false}
+          />
+        </div>
 
-        <select
-          className="select"
-          value={grupoFiltro}
-          onChange={(e) => setGrupoFiltro(e.target.value)}
-        >
-          <option value="todos">Todos los grupos</option>
-          <option value="sin">Sin grupo</option>
-          {grupos.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.nombre}
-            </option>
-          ))}
-        </select>
+        <div className="filtro-buscador">
+          <Buscador
+            opciones={[
+              { valor: 'sin', etiqueta: 'Sin grupo' },
+              ...grupos.map((g) => ({ valor: g.id, etiqueta: g.nombre, detalle: g.comuna })),
+            ]}
+            valor={grupoFiltro === 'todos' ? '' : grupoFiltro}
+            alCambiar={(v) => setGrupoFiltro(v || 'todos')}
+            vacio="Todos los grupos"
+          />
+        </div>
 
         {puedeEditar && (
           <button type="button" className="btn btn-primary" onClick={() => setCreando(true)}>
@@ -604,22 +602,17 @@ function FormularioCliente({ cliente, grupos, alCerrar, alGuardar }: FormProps) 
           />
         </label>
 
-        <label className="field">
+        <div className="field">
           <span className="field-label">Comuna</span>
-          <select
-            className={`select${tocado && errores.comuna ? ' invalid' : ''}`}
-            value={datos.comuna}
-            onChange={(e) => cambiar('comuna', e.target.value)}
-          >
-            <option value="">Selecciona una comuna</option>
-            {COMUNAS.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+          <Buscador
+            opciones={COMUNAS.map((c) => ({ valor: c, etiqueta: c }))}
+            valor={datos.comuna}
+            alCambiar={(v) => cambiar('comuna', v)}
+            vacio="Selecciona una comuna"
+            invalido={tocado && errores.comuna}
+          />
           {tocado && errores.comuna && <span className="field-error">Elige la comuna.</span>}
-        </label>
+        </div>
 
         <label className="field">
           <span className="field-label">Dirección</span>
@@ -644,17 +637,18 @@ function FormularioCliente({ cliente, grupos, alCerrar, alGuardar }: FormProps) 
           <span className="field-hint">Pega el enlace del perfil para retomar la conversación.</span>
         </label>
 
-        <label className="field">
+        <div className="field">
           <span className="field-label">Compañía</span>
-          <select
-            className="select"
-            value={datos.compania}
-            onChange={(e) => cambiar('compania', e.target.value as Compania)}
-          >
-            <option value="Claro">Claro</option>
-            <option value="VTR">VTR</option>
-          </select>
-        </label>
+          <Buscador
+            opciones={[
+              { valor: 'Claro', etiqueta: 'Claro' },
+              { valor: 'VTR', etiqueta: 'VTR' },
+            ]}
+            valor={datos.compania}
+            alCambiar={(v) => cambiar('compania', v as Compania)}
+            permiteVacio={false}
+          />
+        </div>
 
         <label className="field">
           <span className="field-label">Plan contratado</span>
@@ -666,37 +660,30 @@ function FormularioCliente({ cliente, grupos, alCerrar, alGuardar }: FormProps) 
           />
         </label>
 
-        <label className="field">
+        <div className="field">
           <span className="field-label">Grupo de origen</span>
-          <select
-            className="select"
-            value={datos.grupoId ?? ''}
-            onChange={(e) => cambiar('grupoId', e.target.value || null)}
-          >
-            <option value="">Llegó por otra vía</option>
-            {grupos.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.nombre} · {g.codigo}
-              </option>
-            ))}
-          </select>
-          <span className="field-hint">Pregúntale por el código que vio en la publicación.</span>
-        </label>
+          <Buscador
+            opciones={grupos.map((g) => ({
+              valor: g.id,
+              etiqueta: g.nombre,
+              detalle: `${g.codigo}${g.comuna ? ` · ${g.comuna}` : ''}`,
+            }))}
+            valor={datos.grupoId ?? ''}
+            alCambiar={(v) => cambiar('grupoId', v || null)}
+            vacio="Llegó por otra vía"
+          />
+          <span className="field-hint">Busca por nombre o por el código que vio el cliente.</span>
+        </div>
 
-        <label className="field">
+        <div className="field">
           <span className="field-label">Estado</span>
-          <select
-            className="select"
-            value={datos.estado}
-            onChange={(e) => cambiar('estado', e.target.value as EstadoCliente)}
-          >
-            {ESTADOS.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.etiqueta}
-              </option>
-            ))}
-          </select>
-        </label>
+          <Buscador
+            opciones={ESTADOS.map((e) => ({ valor: e.id, etiqueta: e.etiqueta }))}
+            valor={datos.estado}
+            alCambiar={(v) => cambiar('estado', v as EstadoCliente)}
+            permiteVacio={false}
+          />
+        </div>
 
         <label className="field col-span-2">
           <span className="field-label">Notas</span>

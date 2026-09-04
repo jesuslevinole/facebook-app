@@ -1,11 +1,13 @@
-import { useMemo, useRef, useState } from 'react';
-import { Copy, Eye, MessagesSquare, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Copy, Eye, MessagesSquare, Pencil, Plus, Trash2, TrendingUp } from 'lucide-react';
 import Modal from '../components/Modal';
+import Buscador from '../components/Buscador';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
 import { borrarPlantilla, crearPlantilla, editarPlantilla } from '../services/datos';
-import type { Grupo, Identidad, Plantilla, Publicacion, TonoPlantilla } from '../types';
-import { hoy } from '../utils/fecha';
+import type { Cliente, Grupo, Identidad, Plantilla, Publicacion, TonoPlantilla } from '../types';
+import { diaMes, hoy } from '../utils/fecha';
+import { EFECTIVIDAD_VACIA, calcularEfectividad } from '../utils/efectividad';
 import { combinaciones, construirMensaje } from '../utils/mensaje';
 import { copiar } from '../utils/portapapeles';
 import './VistaMensajes.css';
@@ -14,6 +16,7 @@ interface Props {
   grupos: Grupo[];
   plantillas: Plantilla[];
   publicaciones: Publicacion[];
+  clientes: Cliente[];
 }
 
 const TONOS: { id: TonoPlantilla; etiqueta: string; clase: string }[] = [
@@ -34,6 +37,7 @@ const VARIABLES = [
 
 const GRUPO_EJEMPLO: Grupo = {
   id: 'ejemplo',
+  uid: '',
   nombre: 'Compra y venta Maipú',
   url: '',
   codigo: 'CVM',
@@ -44,35 +48,47 @@ const GRUPO_EJEMPLO: Grupo = {
   createdAt: '',
 };
 
-const VACIA: Omit<Plantilla, 'id' | 'createdAt'> = {
+const VACIA: Omit<Plantilla, 'id' | 'createdAt' | 'uid'> = {
   titulo: '',
   cuerpo: '',
   tono: 'directo',
   activo: true,
 };
 
-export default function VistaMensajes({ grupos, plantillas, publicaciones }: Props) {
+export default function VistaMensajes({ grupos, plantillas, publicaciones, clientes }: Props) {
   const { avisar } = useAvisos();
-  const { identidad, puede } = useSesion();
+  const { perfil, identidad, puede } = useSesion();
   const puedeEditar = puede('mensajes.editar');
   const [editando, setEditando] = useState<Plantilla | null>(null);
   const [creando, setCreando] = useState(false);
   const [porBorrar, setPorBorrar] = useState<Plantilla | null>(null);
   const [previa, setPrevia] = useState<Plantilla | null>(null);
 
-  const usosPorPlantilla = useMemo(() => {
-    const mapa = new Map<string, number>();
-    publicaciones.forEach((p) => mapa.set(p.plantillaId, (mapa.get(p.plantillaId) ?? 0) + 1));
-    return mapa;
-  }, [publicaciones]);
+  const efectividad = useMemo(
+    () => calcularEfectividad(plantillas, publicaciones, clientes),
+    [plantillas, publicaciones, clientes]
+  );
 
-  const guardar = async (datos: Omit<Plantilla, 'id' | 'createdAt'>, id?: string) => {
+  /* El mejor rendimiento sirve de referencia para la barra comparativa:
+     lo que importa no es el número absoluto sino cuál rinde más. */
+  const mejorRendimiento = useMemo(
+    () => Math.max(0.0001, ...[...efectividad.values()].map((e) => e.rendimiento)),
+    [efectividad]
+  );
+
+  const guardar = async (datos: Omit<Plantilla, 'id' | 'createdAt' | 'uid'>, id?: string) => {
     try {
       if (id) {
-        await editarPlantilla(id, datos);
+        /* Igual que con los grupos: editar un mensaje heredado lo hace tuyo. */
+        const dueno = plantillas.find((p) => p.id === id)?.uid;
+        await editarPlantilla(id, dueno ? datos : { ...datos, uid: perfil?.id ?? '' });
         avisar('Mensaje actualizado.');
       } else {
-        await crearPlantilla({ ...datos, createdAt: new Date().toISOString() });
+        await crearPlantilla({
+          ...datos,
+          uid: perfil?.id ?? '',
+          createdAt: new Date().toISOString(),
+        });
         avisar('Mensaje creado.');
       }
       setCreando(false);
@@ -107,8 +123,8 @@ export default function VistaMensajes({ grupos, plantillas, publicaciones }: Pro
     <section className="stack">
       <div className="seccion-head">
         <p className="text-sm muted">
-          {activas} mensajes activos rotando. Las variantes entre llaves hacen que el texto salga
-          distinto en cada grupo.
+          <TrendingUp size={14} /> {activas} mensajes activos rotando. «Cli./uso» compara cuántos
+          clientes trae cada publicación: es la cifra para decidir cuál conservar.
         </p>
         {puedeEditar && (
           <button type="button" className="btn btn-primary" onClick={() => setCreando(true)}>
@@ -141,6 +157,7 @@ export default function VistaMensajes({ grupos, plantillas, publicaciones }: Pro
           {plantillas.map((p) => {
             const tono = TONOS.find((t) => t.id === p.tono) ?? TONOS[0];
             const variantes = combinaciones(p.cuerpo);
+            const datos = efectividad.get(p.id) ?? { plantillaId: p.id, ...EFECTIVIDAD_VACIA };
             return (
               <li key={p.id} className={`mensaje card${p.activo ? '' : ' pausado'}`}>
                 <header className="mensaje-head">
@@ -149,9 +166,6 @@ export default function VistaMensajes({ grupos, plantillas, publicaciones }: Pro
                     <div className="row row-wrap mensaje-meta">
                       <span className={`badge ${tono.clase}`}>{tono.etiqueta}</span>
                       <span className="badge">{variantes.toLocaleString('es-CL')} variantes</span>
-                      <span className="text-sm muted-soft">
-                        {usosPorPlantilla.get(p.id) ?? 0} usos en 45 días
-                      </span>
                       {!p.activo && <span className="badge amber">En pausa</span>}
                     </div>
                   </div>
@@ -187,6 +201,43 @@ export default function VistaMensajes({ grupos, plantillas, publicaciones }: Pro
                     )}
                   </div>
                 </header>
+
+                <dl className="mensaje-metricas">
+                  <div>
+                    <dt className="eyebrow">Usos</dt>
+                    <dd className="num">{datos.usos}</dd>
+                  </div>
+                  <div>
+                    <dt className="eyebrow">Clientes</dt>
+                    <dd className="num">{datos.clientes}</dd>
+                  </div>
+                  <div>
+                    <dt className="eyebrow">Instalados</dt>
+                    <dd className="num">{datos.instalados}</dd>
+                  </div>
+                  <div>
+                    <dt className="eyebrow">Cli./uso</dt>
+                    <dd className="num">{datos.rendimiento.toFixed(2)}</dd>
+                  </div>
+                </dl>
+
+                <div className="mensaje-barra">
+                  <div className="progress">
+                    <span
+                      className={`progress-fill${datos.rendimiento >= mejorRendimiento ? ' green' : ''}`}
+                      style={
+                        { '--fill': `${(datos.rendimiento / mejorRendimiento) * 100}%` } as CSSProperties
+                      }
+                    />
+                  </div>
+                  <p className="text-sm muted-soft">
+                    {datos.usos === 0
+                      ? 'Sin usar todavía'
+                      : datos.rendimiento >= mejorRendimiento
+                        ? `El que mejor rinde · último uso ${datos.ultimoUso ? diaMes(datos.ultimoUso) : '—'}`
+                        : `Último uso ${datos.ultimoUso ? diaMes(datos.ultimoUso) : '—'}`}
+                  </p>
+                </div>
 
                 <p className="mensaje-cuerpo">{p.cuerpo}</p>
 
@@ -292,11 +343,11 @@ interface EditorProps {
   grupoMuestra: Grupo;
   identidad: Identidad;
   alCerrar: () => void;
-  alGuardar: (datos: Omit<Plantilla, 'id' | 'createdAt'>, id?: string) => Promise<void>;
+  alGuardar: (datos: Omit<Plantilla, 'id' | 'createdAt' | 'uid'>, id?: string) => Promise<void>;
 }
 
 function EditorMensaje({ plantilla, grupoMuestra, identidad, alCerrar, alGuardar }: EditorProps) {
-  const [datos, setDatos] = useState<Omit<Plantilla, 'id' | 'createdAt'>>(() =>
+  const [datos, setDatos] = useState<Omit<Plantilla, 'id' | 'createdAt' | 'uid'>>(() =>
     plantilla
       ? { titulo: plantilla.titulo, cuerpo: plantilla.cuerpo, tono: plantilla.tono, activo: plantilla.activo }
       : { ...VACIA }
@@ -326,7 +377,7 @@ function EditorMensaje({ plantilla, grupoMuestra, identidad, alCerrar, alGuardar
   };
 
   const vistaPrevia = construirMensaje(
-    { ...datos, id: plantilla?.id ?? 'previa', createdAt: '' },
+    { ...datos, id: plantilla?.id ?? 'previa', uid: '', createdAt: '' },
     grupoMuestra,
     identidad,
     hoy()
@@ -376,20 +427,15 @@ function EditorMensaje({ plantilla, grupoMuestra, identidad, alCerrar, alGuardar
               {tocado && errores.titulo && <span className="field-error">Ponle un título.</span>}
             </label>
 
-            <label className="field">
+            <div className="field">
               <span className="field-label">Tono</span>
-              <select
-                className="select"
-                value={datos.tono}
-                onChange={(e) => setDatos((p) => ({ ...p, tono: e.target.value as TonoPlantilla }))}
-              >
-                {TONOS.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.etiqueta}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <Buscador
+                opciones={TONOS.map((t) => ({ valor: t.id, etiqueta: t.etiqueta }))}
+                valor={datos.tono}
+                alCambiar={(v) => setDatos((p) => ({ ...p, tono: v as TonoPlantilla }))}
+                permiteVacio={false}
+              />
+            </div>
           </div>
 
           <div className="field">

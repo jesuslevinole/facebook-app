@@ -11,7 +11,9 @@ import {
   escucharMembresias,
   escucharPlantillas,
   escucharPublicaciones,
+  escucharRutaDelDia,
   escucharUsuarios,
+  guardarRuta,
   guardarAjustes,
   leerAjustes,
 } from './services/datos';
@@ -22,9 +24,10 @@ import type {
   Membresia,
   Plantilla,
   Publicacion,
+  RutaDia,
   Usuario,
 } from './types';
-import { claveMenos, hoy } from './utils/fecha';
+import { claveMenos, fechaRuta, hoy } from './utils/fecha';
 import VistaLogin from './views/VistaLogin';
 import VistaPanel from './views/VistaPanel';
 import VistaPublicar from './views/VistaPublicar';
@@ -71,6 +74,7 @@ export default function App() {
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [membresias, setMembresias] = useState<Membresia[]>([]);
+  const [rutaDia, setRutaDia] = useState<RutaDia | null>(null);
   const [ajustes, setAjustes] = useState<Ajustes>(AJUSTES_INICIALES);
   const [cargando, setCargando] = useState(true);
   const [sinConexion, setSinConexion] = useState(!navigator.onLine);
@@ -101,6 +105,21 @@ export default function App() {
 
     return () => bajas.forEach((baja) => baja());
   }, [avisar, perfil]);
+
+  /* La ruta se guarda por vendedor y por fecha de Venezuela. Al pasar la
+     medianoche de Caracas el id cambia y la ruta aparece vacía sola. */
+  useEffect(() => {
+    if (!perfil) return;
+    return escucharRutaDelDia(perfil.id, fechaRuta(), setRutaDia, () => setRutaDia(null));
+  }, [perfil]);
+
+  const cambiarRuta = useCallback(
+    async (grupoIds: string[]) => {
+      if (!perfil) return;
+      await guardarRuta(perfil.id, fechaRuta(), grupoIds);
+    },
+    [perfil]
+  );
 
   useEffect(() => {
     if (!perfil) return;
@@ -150,13 +169,32 @@ export default function App() {
     [misPublicaciones, fecha]
   );
 
+  /* Grupos y mensajes son de cada vendedor. Los que tienen `uid` vacío
+     vienen de cuando el catálogo era compartido: siguen visibles para todos
+     para no perderlos, y dejan de serlo en cuanto alguien los edita. */
+  const gruposVisibles = useMemo(() => {
+    if (!perfil) return [];
+    return grupos.filter((g) => !g.uid || g.uid === perfil.id);
+  }, [grupos, perfil]);
+
+  const plantillasVisibles = useMemo(() => {
+    if (!perfil) return [];
+    return plantillas.filter((p) => !p.uid || p.uid === perfil.id);
+  }, [plantillas, perfil]);
+
   /* La ruta de publicación solo considera los grupos donde el vendedor ya
      entró. Estar en el catálogo no significa poder publicar. */
   const misGrupos = useMemo(() => {
     if (!perfil) return [];
     const ids = new Set(membresias.filter((m) => m.uid === perfil.id).map((m) => m.grupoId));
-    return grupos.filter((g) => ids.has(g.id));
-  }, [grupos, membresias, perfil]);
+    return gruposVisibles.filter((g) => ids.has(g.id));
+  }, [gruposVisibles, membresias, perfil]);
+
+  /* Grupos de la ruta de hoy: son los que se recorren en Publicar. */
+  const gruposRuta = useMemo(() => {
+    const ids = new Set(rutaDia?.grupoIds ?? []);
+    return misGrupos.filter((g) => ids.has(g.id));
+  }, [misGrupos, rutaDia]);
 
   const verEquipo = puede('panel.verEquipo');
   const verTodosClientes = puede('clientes.verTodos');
@@ -219,7 +257,7 @@ export default function App() {
         {vista === 'panel' && (
           <VistaPanel
             clientes={clientesPanel}
-            grupos={grupos}
+            grupos={gruposVisibles}
             publicaciones={publicacionesPanel}
             ajustes={ajustes}
             cargando={cargando}
@@ -231,8 +269,9 @@ export default function App() {
         {vista === 'publicar' && (
           <VistaPublicar
             clientes={clientesVisibles}
-            grupos={misGrupos}
-            plantillas={plantillas}
+            grupos={gruposRuta}
+            misGrupos={misGrupos}
+            plantillas={plantillasVisibles}
             publicaciones={misPublicaciones}
             ajustes={ajustes}
             alIrA={setVista}
@@ -242,7 +281,7 @@ export default function App() {
         {vista === 'clientes' && (
           <VistaClientes
             clientes={clientesVisibles}
-            grupos={grupos}
+            grupos={gruposVisibles}
             usuarios={usuarios}
             cargando={cargando}
           />
@@ -250,16 +289,24 @@ export default function App() {
 
         {vista === 'grupos' && (
           <VistaGrupos
-            clientes={clientes}
-            grupos={grupos}
-            publicaciones={publicaciones}
+            clientes={clientesVisibles}
+            grupos={gruposVisibles}
+            publicaciones={misPublicaciones}
             membresias={membresias}
+            plantillas={plantillasVisibles}
             ajustes={ajustes}
+            ruta={rutaDia?.grupoIds ?? []}
+            alCambiarRuta={cambiarRuta}
           />
         )}
 
         {vista === 'mensajes' && (
-          <VistaMensajes grupos={grupos} plantillas={plantillas} publicaciones={publicaciones} />
+          <VistaMensajes
+            grupos={gruposVisibles}
+            plantillas={plantillasVisibles}
+            publicaciones={misPublicaciones}
+            clientes={clientesVisibles}
+          />
         )}
 
         {vista === 'equipo' && (
@@ -272,7 +319,11 @@ export default function App() {
         )}
 
         {vista === 'ajustes' && (
-          <VistaAjustes ajustes={ajustes} plantillas={plantillas} alGuardar={actualizarAjustes} />
+          <VistaAjustes
+            ajustes={ajustes}
+            plantillas={plantillasVisibles}
+            alGuardar={actualizarAjustes}
+          />
         )}
       </main>
 

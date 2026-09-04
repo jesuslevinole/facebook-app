@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Eye, EyeOff, LogIn, Unlock } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, LogIn, MailCheck, Unlock } from 'lucide-react';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
 import { ACCESO_INVITADO } from '../config/acceso';
@@ -24,7 +24,8 @@ interface Props {
 export default function VistaLogin({ rechazo }: Props) {
   const { avisar } = useAvisos();
   const { entrarComoInvitado } = useSesion();
-  const [modo, setModo] = useState<'acceso' | 'registro'>('acceso');
+  const [modo, setModo] = useState<'acceso' | 'registro' | 'recuperar'>('acceso');
+  const [enviado, setEnviado] = useState(false);
   const [permiteRegistro, setPermiteRegistro] = useState(false);
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
@@ -100,19 +101,38 @@ export default function VistaLogin({ rechazo }: Props) {
   };
 
   const restablecer = async () => {
+    setError('');
     if (!email.trim()) {
       setError('Escribe tu correo para enviarte el enlace.');
       return;
     }
+    setOcupado(true);
     try {
       await recuperarClave(email);
-      avisar('Te enviamos un correo para cambiar la clave.');
+      setEnviado(true);
+      avisar('Correo enviado.');
     } catch (e) {
-      setError(mensajeDeError(e));
+      /* Firebase responde "usuario no encontrado" para correos que no existen.
+         Se muestra igual el mensaje de éxito: confirmar qué correos están
+         registrados le daría a un extraño la lista del equipo. */
+      const codigo = String((e as { code?: unknown })?.code ?? '');
+      if (codigo.includes('user-not-found') || codigo.includes('invalid-credential')) {
+        setEnviado(true);
+      } else {
+        setError(mensajeDeError(e));
+      }
     }
+    setOcupado(false);
+  };
+
+  const irA = (nuevo: 'acceso' | 'registro' | 'recuperar') => {
+    setModo(nuevo);
+    setError('');
+    setEnviado(false);
   };
 
   const esRegistro = modo === 'registro';
+  const esRecuperar = modo === 'recuperar';
 
   return (
     <main className="acceso">
@@ -141,6 +161,76 @@ export default function VistaLogin({ rechazo }: Props) {
 
       <section className="acceso-formulario">
         <div className="acceso-caja card">
+          {esRecuperar ? (
+            <>
+              <button type="button" className="acceso-volver" onClick={() => irA('acceso')}>
+                <ArrowLeft size={14} />
+                Volver
+              </button>
+
+              {enviado ? (
+                <>
+                  <span className="acceso-exito">
+                    <MailCheck size={22} />
+                  </span>
+                  <header className="stack-sm">
+                    <h2 className="title-page">Revisa tu correo</h2>
+                    <p className="text-sm muted">
+                      Si <strong>{email.trim()}</strong> tiene una cuenta, le llegó un enlace para
+                      crear una clave nueva. El enlace vence en una hora.
+                    </p>
+                  </header>
+                  <p className="acceso-nota">
+                    ¿No aparece? Revisa la carpeta de spam y que el correo esté bien escrito.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-block"
+                    onClick={() => setEnviado(false)}
+                  >
+                    Probar con otro correo
+                  </button>
+                </>
+              ) : (
+                <>
+                  <header className="stack-sm">
+                    <h2 className="title-page">Recuperar tu clave</h2>
+                    <p className="text-sm muted">
+                      Escribe tu correo y te enviamos un enlace para crear una clave nueva.
+                    </p>
+                  </header>
+
+                  <label className="field">
+                    <span className="field-label">Correo</span>
+                    <input
+                      className="input"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') void restablecer();
+                      }}
+                      placeholder="nombre@correo.cl"
+                      autoComplete="email"
+                      inputMode="email"
+                    />
+                  </label>
+
+                  {error && <p className="field-error">{error}</p>}
+
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-block"
+                    onClick={() => void restablecer()}
+                    disabled={ocupado}
+                  >
+                    {ocupado ? 'Enviando…' : 'Enviarme el enlace'}
+                  </button>
+                </>
+              )}
+            </>
+          ) : (
+            <>
           <header className="stack-sm">
             <h2 className="title-page">{esRegistro ? 'Crea tu cuenta' : 'Entra a tu cuenta'}</h2>
             <p className="text-sm muted">
@@ -216,8 +306,12 @@ export default function VistaLogin({ rechazo }: Props) {
           </button>
 
           {!esRegistro && (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => void restablecer()}>
-              Olvidé mi clave
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => irA('recuperar')}
+            >
+              ¿Olvidaste tu contraseña?
             </button>
           )}
 
@@ -245,14 +339,13 @@ export default function VistaLogin({ rechazo }: Props) {
               <button
                 type="button"
                 className="acceso-enlace"
-                onClick={() => {
-                  setModo(esRegistro ? 'acceso' : 'registro');
-                  setError('');
-                }}
+                onClick={() => irA(esRegistro ? 'acceso' : 'registro')}
               >
                 {esRegistro ? 'Entrar' : 'Crear la primera cuenta'}
               </button>
             </p>
+          )}
+            </>
           )}
         </div>
       </section>

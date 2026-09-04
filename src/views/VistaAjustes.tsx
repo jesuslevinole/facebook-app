@@ -67,7 +67,11 @@ export default function VistaAjustes({ ajustes, plantillas, alGuardar }: Props) 
     setCargandoBase(true);
     try {
       const ahora = new Date().toISOString();
-      await Promise.all(PLANTILLAS_BASE.map((p) => crearPlantilla({ ...p, createdAt: ahora })));
+      await Promise.all(
+        PLANTILLAS_BASE.map((p) =>
+          crearPlantilla({ ...p, uid: perfil?.id ?? '', createdAt: ahora })
+        )
+      );
       avisar(`${PLANTILLAS_BASE.length} mensajes agregados. Edítalos con tus datos.`);
     } catch {
       avisar('No se pudieron cargar los mensajes de ejemplo.', 'error');
