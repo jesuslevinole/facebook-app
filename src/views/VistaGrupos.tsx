@@ -27,6 +27,7 @@ import {
 } from '../services/datos';
 import { UMBRAL_DESCARTE } from '../utils/puntajeGrupo';
 import { CERRADAS, normalizarEstado } from '../utils/estados';
+import { grupoConMismoEnlace } from '../utils/enlaceGrupo';
 import type {
   Ajustes,
   Cliente,
@@ -359,6 +360,7 @@ export default function VistaGrupos({
           <FormularioGrupo
             grupo={null}
             codigosUsados={[]}
+            existentes={grupos}
             cooldownDefault={ajustes.cooldownHorasDefault}
             alCerrar={() => setCreando(false)}
             alGuardar={guardar}
@@ -765,6 +767,7 @@ export default function VistaGrupos({
         <FormularioGrupo
           grupo={editando}
           codigosUsados={grupos.filter((g) => g.id !== editando?.id).map((g) => g.codigo)}
+          existentes={grupos}
           cooldownDefault={ajustes.cooldownHorasDefault}
           alCerrar={() => {
             setCreando(false);
@@ -837,12 +840,21 @@ export default function VistaGrupos({
 interface FormProps {
   grupo: Grupo | null;
   codigosUsados: string[];
+  /** Catálogo completo, para detectar un enlace ya cargado. */
+  existentes: Grupo[];
   cooldownDefault: number;
   alCerrar: () => void;
   alGuardar: (datos: Omit<Grupo, 'id'>, id?: string) => Promise<void>;
 }
 
-function FormularioGrupo({ grupo, codigosUsados, cooldownDefault, alCerrar, alGuardar }: FormProps) {
+function FormularioGrupo({
+  grupo,
+  codigosUsados,
+  existentes,
+  cooldownDefault,
+  alCerrar,
+  alGuardar,
+}: FormProps) {
   const [datos, setDatos] = useState<Omit<Grupo, 'id'>>(() =>
     grupo ? { ...grupo } : { ...VACIO, cooldownHoras: cooldownDefault }
   );
@@ -852,9 +864,13 @@ function FormularioGrupo({ grupo, codigosUsados, cooldownDefault, alCerrar, alGu
   const cambiar = <K extends keyof Omit<Grupo, 'id'>>(campo: K, valor: Omit<Grupo, 'id'>[K]) =>
     setDatos((previos) => ({ ...previos, [campo]: valor }));
 
+  /* El mismo grupo cargado dos veces rompe las estadísticas y hace publicar
+     de más en un solo lugar, que es justo lo que se quiere evitar. */
+  const duplicado = grupoConMismoEnlace(datos.url, existentes, grupo?.id);
+
   const errores = {
     nombre: !datos.nombre.trim(),
-    url: !/^https?:\/\/.+/.test(datos.url.trim()),
+    url: !/^https?:\/\/.+/.test(datos.url.trim()) || Boolean(duplicado),
     codigo: !datos.codigo.trim() || codigosUsados.includes(datos.codigo.trim().toUpperCase()),
   };
   const hayErrores = Object.values(errores).some(Boolean);
@@ -919,7 +935,12 @@ function FormularioGrupo({ grupo, codigosUsados, cooldownDefault, alCerrar, alGu
             placeholder="https://www.facebook.com/groups/…"
             inputMode="url"
           />
-          {tocado && errores.url ? (
+          {duplicado ? (
+            <span className="field-error">
+              Ese enlace ya está cargado como «{duplicado.nombre}». Los grupos no se pueden
+              repetir.
+            </span>
+          ) : tocado && errores.url ? (
             <span className="field-error">Pega el enlace completo, con https://</span>
           ) : (
             <span className="field-hint">Es el enlace que se abre al tocar «Copiar y abrir».</span>

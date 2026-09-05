@@ -187,7 +187,7 @@ export default function VistaPublicar({
   const deshacer = async (publicacion: Publicacion) => {
     try {
       await borrarPublicacion(publicacion.id);
-      avisar('Registro eliminado. El grupo vuelve a la ruta.', 'info');
+      avisar(`${publicacion.grupoNombre} volvió a «Sin publicar».`, 'info');
     } catch {
       avisar('No se pudo eliminar el registro.', 'error');
     }
@@ -454,7 +454,7 @@ export default function VistaPublicar({
                           onClick={() => void deshacer(registro)}
                         >
                           <Undo2 size={14} />
-                          Deshacer
+                          Devolver
                         </button>
                       </>
                     ) : (
@@ -733,8 +733,14 @@ function Fila({
                 <BarChart3 size={14} />
                 Interacciones
               </button>
-              <button type="button" className="icon-btn" onClick={alDeshacer} title="Deshacer registro">
-                <Undo2 size={16} />
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={alDeshacer}
+                title="Vuelve a «Sin publicar» y borra el registro"
+              >
+                <Undo2 size={14} />
+                Devolver
               </button>
             </div>
           ) : (
