@@ -107,6 +107,14 @@ export interface Grupo {
   comuna: string;
   miembros: number;
   activo: boolean;
+  /* Grupo donde un administrador tiene que aprobar cada publicación.
+     Se marca a mano: Facebook no lo expone hasta que ya publicaste y la
+     entrada queda "pendiente de aprobación".
+
+     Estos grupos quedan fuera de la ruta automática. No es que no sirvan
+     nunca, es que el trabajo de publicar ahí se pierde la mayoría de las
+     veces, y ocupan un lugar que podría tener un grupo abierto. */
+  requiereAprobacion: boolean;
   /** Horas mínimas entre dos publicaciones del mismo vendedor en este grupo. */
   cooldownHoras: number;
   createdAt: string;

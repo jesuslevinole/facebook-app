@@ -44,6 +44,7 @@ const GRUPO_EJEMPLO: Grupo = {
   comuna: 'Maipú',
   miembros: 0,
   activo: true,
+  requiereAprobacion: false,
   cooldownHoras: 20,
   createdAt: '',
 };

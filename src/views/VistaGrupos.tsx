@@ -10,6 +10,8 @@ import {
   Pencil,
   Play,
   Plus,
+  ShieldAlert,
+  ShieldCheck,
   Trash2,
   UsersRound,
 } from 'lucide-react';
@@ -75,6 +77,7 @@ type Pestana = 'todos' | 'mios';
 
 const VACIO: Omit<Grupo, 'id'> = {
   uid: '',
+  requiereAprobacion: false,
   nombre: '',
   url: '',
   codigo: '',
@@ -100,6 +103,7 @@ export default function VistaGrupos({
   const { perfil, puede, identidad } = useSesion();
   const [seleccion, setSeleccion] = useState<string[]>([]);
   const [comunaFiltro, setComunaFiltro] = useState('');
+  const [ocultarModerados, setOcultarModerados] = useState(true);
   const [pestana, setPestana] = useState<Pestana>('todos');
   const [editando, setEditando] = useState<Grupo | null>(null);
   const [creando, setCreando] = useState(false);
@@ -159,7 +163,12 @@ export default function VistaGrupos({
   const disponibles = rendimiento.filter((r) => !misGrupos.has(r.grupo.id));
   const mios = rendimiento.filter((r) => misGrupos.has(r.grupo.id));
   const base = pestana === 'todos' ? disponibles : mios;
-  const visibles = comunaFiltro ? base.filter((r) => r.grupo.comuna === comunaFiltro) : base;
+  const porComuna = comunaFiltro ? base.filter((r) => r.grupo.comuna === comunaFiltro) : base;
+  const visibles = ocultarModerados
+    ? porComuna.filter((r) => !r.grupo.requiereAprobacion)
+    : porComuna;
+
+  const moderados = base.filter((r) => r.grupo.requiereAprobacion).length;
 
   const comunasEnUso = useMemo(() => {
     const set = new Set(grupos.map((g) => g.comuna).filter(Boolean));
@@ -329,6 +338,25 @@ export default function VistaGrupos({
     setPorBorrar(null);
   };
 
+  /* Marcar un grupo como moderado lo saca de la ruta de hoy en el acto: si
+     se quedara, el vendedor perdería el tiempo publicando ahí igual. */
+  const alternarModeracion = async (grupo: Grupo) => {
+    const marcar = !grupo.requiereAprobacion;
+    try {
+      await editarGrupo(grupo.id, { requiereAprobacion: marcar });
+      if (marcar && enRuta.has(grupo.id)) {
+        await alCambiarRuta(ruta.filter((id) => id !== grupo.id));
+      }
+      avisar(
+        marcar
+          ? `${grupo.nombre} sale de la ruta automática: pide aprobación de un admin.`
+          : `${grupo.nombre} vuelve a la ruta automática.`
+      );
+    } catch {
+      avisar('No se pudo cambiar el grupo.', 'error');
+    }
+  };
+
   const alternarActivo = async (grupo: Grupo) => {
     try {
       await editarGrupo(grupo.id, { activo: !grupo.activo });
@@ -397,6 +425,18 @@ export default function VistaGrupos({
         </div>
 
         <span className="spacer" />
+
+        {moderados > 0 && (
+          <button
+            type="button"
+            className={`chip${ocultarModerados ? ' active' : ''}`}
+            onClick={() => setOcultarModerados((o) => !o)}
+            title="Grupos donde un administrador aprueba cada publicación"
+          >
+            <ShieldAlert size={14} />
+            {ocultarModerados ? `Ocultando ${moderados} moderados` : `${moderados} moderados`}
+          </button>
+        )}
 
         <div className="grupos-comuna">
           <Buscador
@@ -539,6 +579,9 @@ export default function VistaGrupos({
                           <span className="code-tag">{r.grupo.codigo}</span>
                           {enRuta.has(r.grupo.id) && <span className="badge blue">En ruta</span>}
                           {r.puntaje?.descartado && <span className="badge red">Sin respuesta</span>}
+                          {r.grupo.requiereAprobacion && (
+                            <span className="badge amber">Requiere aprobación</span>
+                          )}
                           {r.publicadoHoy && <span className="badge green">Publicado hoy</span>}
                           {!r.grupo.activo && <span className="badge">En pausa</span>}
                         </span>
@@ -602,6 +645,22 @@ export default function VistaGrupos({
                             </button>
                             <button
                               type="button"
+                              className="icon-btn"
+                              onClick={() => void alternarModeracion(r.grupo)}
+                              title={
+                                r.grupo.requiereAprobacion
+                                  ? 'Quitar la marca de aprobación'
+                                  : 'Marcar: un admin aprueba cada publicación'
+                              }
+                            >
+                              {r.grupo.requiereAprobacion ? (
+                                <ShieldAlert size={16} />
+                              ) : (
+                                <ShieldCheck size={16} />
+                              )}
+                            </button>
+                            <button
+                              type="button"
                               className="btn btn-primary btn-sm"
                               onClick={() => void unirse(r.grupo)}
                             >
@@ -619,6 +678,22 @@ export default function VistaGrupos({
                             >
                               <Copy size={14} />
                               Copiar y abrir
+                            </button>
+                            <button
+                              type="button"
+                              className="icon-btn"
+                              onClick={() => void alternarModeracion(r.grupo)}
+                              title={
+                                r.grupo.requiereAprobacion
+                                  ? 'Quitar la marca de aprobación'
+                                  : 'Marcar: un admin aprueba cada publicación'
+                              }
+                            >
+                              {r.grupo.requiereAprobacion ? (
+                                <ShieldAlert size={16} />
+                              ) : (
+                                <ShieldCheck size={16} />
+                              )}
                             </button>
                             <button
                               type="button"
@@ -686,7 +761,10 @@ export default function VistaGrupos({
                       {r.grupo.comuna && <span className="text-sm muted">{r.grupo.comuna}</span>}
                     </span>
                   </div>
-                  {r.publicadoHoy && <span className="badge green">Hoy</span>}
+                  <span className="row">
+                    {r.grupo.requiereAprobacion && <span className="badge amber">Moderado</span>}
+                    {r.publicadoHoy && <span className="badge green">Hoy</span>}
+                  </span>
                 </div>
 
                 {pestana === 'mios' ? (
@@ -724,6 +802,14 @@ export default function VistaGrupos({
                   >
                     <Copy size={14} />
                     Copiar y abrir
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => void alternarModeracion(r.grupo)}
+                  >
+                    <ShieldAlert size={14} />
+                    {r.grupo.requiereAprobacion ? 'Quitar marca' : 'Moderado'}
                   </button>
                   {pestana === 'todos' ? (
                     <button
@@ -1007,6 +1093,20 @@ function FormularioGrupo({
             onChange={(e) => cambiar('activo', e.target.checked)}
           />
           <span className="field-label">Disponible para el equipo</span>
+        </label>
+
+        <label className="field col-span-2 row usuarios-check">
+          <input
+            type="checkbox"
+            checked={datos.requiereAprobacion}
+            onChange={(e) => cambiar('requiereAprobacion', e.target.checked)}
+          />
+          <span className="field-label">
+            Un administrador aprueba cada publicación
+            <span className="field-hint">
+              Queda fuera de la ruta automática: casi nunca aprueban a tiempo.
+            </span>
+          </span>
         </label>
       </div>
     </Modal>

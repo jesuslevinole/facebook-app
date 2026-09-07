@@ -156,8 +156,14 @@ Los criterios, por peso:
 | 10 | Tamaño del grupo, normalizado contra el más grande. |
 | ~6 | Días sin publicar, para que la ruta no se reduzca a los mismos cinco. |
 
-**Regla de descarte:** diez publicaciones sin una sola interacción y el grupo
-sale de la ruta automática. Sigue en el catálogo y se puede agregar a mano.
+**Dos reglas de exclusión:**
+
+- Diez publicaciones sin una sola interacción y el grupo sale de la ruta
+  automática. Sigue en el catálogo y se puede agregar a mano.
+- Los grupos marcados como *«un administrador aprueba cada publicación»* quedan
+  fuera desde el principio. Se marcan a mano —Facebook no lo avisa hasta que ya
+  publicaste y la entrada queda pendiente— y por defecto se ocultan de la
+  tabla.
 
 **Grupos sin historial** (menos de tres publicaciones) reciben un puntaje
 intermedio de exploración. Sin eso, un grupo nuevo nunca se probaría y el

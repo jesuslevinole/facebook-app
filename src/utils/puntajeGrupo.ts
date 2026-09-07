@@ -48,6 +48,8 @@ export interface PuntajeGrupo {
   enSuHora: boolean;
   /** Grupo agotado: mucho publicado, ninguna respuesta. */
   descartado: boolean;
+  /** Excluido de la ruta automática por pedir aprobación de un admin. */
+  moderado: boolean;
   /** Sin datos suficientes para juzgarlo todavía. */
   porProbar: boolean;
   puntaje: number;
@@ -114,6 +116,7 @@ export function puntuarGrupos(
         : false;
 
     const descartado = pubs.length >= UMBRAL_DESCARTE && interacciones === 0;
+    const moderado = grupo.requiereAprobacion === true;
     const porProbar = pubs.length < 3;
 
     return {
@@ -130,6 +133,7 @@ export function puntuarGrupos(
       mejorHora,
       enSuHora,
       descartado,
+      moderado,
       porProbar,
       puntaje: 0,
       motivo: '',
@@ -139,6 +143,12 @@ export function puntuarGrupos(
   const topeIntensidad = Math.max(0.001, ...filas.map((f) => f.intensidad));
 
   for (const f of filas) {
+    if (f.moderado) {
+      f.puntaje = -2;
+      f.motivo = 'Un administrador aprueba cada publicación';
+      continue;
+    }
+
     if (f.descartado) {
       f.puntaje = -1;
       f.motivo = `${f.publicaciones} publicaciones sin ninguna interacción`;
@@ -187,7 +197,7 @@ export function armarRutaAutomatica(
   horaActual?: number
 ): string[] {
   return puntuarGrupos(grupos, publicaciones, fecha, jornada, horaActual)
-    .filter((f) => !f.descartado && f.grupo.activo)
+    .filter((f) => !f.descartado && !f.moderado && f.grupo.activo)
     .slice(0, tope)
     .map((f) => f.grupo.id);
 }
