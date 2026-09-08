@@ -47,7 +47,7 @@
   background: var(--surface-2);
 }
 
-@media (max-width: 620px) {
+@media (max-width: 900px) {
   .ajustes-pie .btn {
     width: 100%;
   }

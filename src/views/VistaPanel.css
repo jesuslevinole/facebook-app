@@ -34,7 +34,7 @@
 }
 
 /* La tabla del panel no cabe cómoda en pantallas chicas: se recorta a lo esencial. */
-@media (max-width: 620px) {
+@media (max-width: 900px) {
   .panel .table th:nth-child(3),
   .panel .table td:nth-child(3),
   .panel .table th:nth-child(4),

@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BarraInferior, BarraLateral, vistasPermitidas, type Vista } from './components/Navegacion';
+import {
+  BarraInferior,
+  BarraLateral,
+  MenuMovil,
+  vistasPermitidas,
+  type Vista,
+} from './components/Navegacion';
 import BarraSuperior from './components/BarraSuperior';
 import { useAvisos } from './components/Avisos';
 import { useSesion } from './context/Sesion';
@@ -80,6 +86,7 @@ export default function App() {
   const [ajustes, setAjustes] = useState<Ajustes>(AJUSTES_INICIALES);
   const [cargando, setCargando] = useState(true);
   const [sinConexion, setSinConexion] = useState(!navigator.onLine);
+  const [menuAbierto, setMenuAbierto] = useState(false);
 
   /* Listeners globales en un solo lugar: las vistas reciben los datos por
      props y nunca vuelven a consultar la misma colección (si lo hicieran,
@@ -300,6 +307,7 @@ export default function App() {
           sinConexion={sinConexion}
           esInvitado={esInvitado}
           alSalir={() => void cerrarSesion()}
+          alAbrirMenu={() => setMenuAbierto(true)}
         />
 
         {vista === 'panel' && (
@@ -378,6 +386,21 @@ export default function App() {
       </main>
 
       <BarraInferior vista={vista} alCambiar={setVista} puede={puede} />
+
+      <MenuMovil
+        abierto={menuAbierto}
+        alCerrar={() => setMenuAbierto(false)}
+        vista={vista}
+        alCambiar={setVista}
+        publicadasHoy={publicadasHoy}
+        meta={ajustes.metaDiaria}
+        puede={puede}
+        vendedor={perfil.nombre}
+        rol={rol?.nombre ?? 'Sin rol'}
+        tema={tema}
+        alAlternarTema={alternar}
+        alSalir={() => void cerrarSesion()}
+      />
     </div>
   );
 }

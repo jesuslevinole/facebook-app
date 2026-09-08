@@ -198,7 +198,7 @@
   white-space: nowrap;
 }
 
-@media (max-width: 620px) {
+@media (max-width: 900px) {
   .barras-area {
     height: 160px;
   }

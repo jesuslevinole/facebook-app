@@ -33,19 +33,25 @@
   min-width: 150px;
 }
 
+/* Un solo corte para móvil: 900px. Tener dos (620 y 900) hacía que dos
+   teléfonos de anchos distintos vieran interfaces diferentes, que es
+   justamente lo que hay que evitar. */
 @media (max-width: 900px) {
   .lienzo {
-    padding: 18px 16px calc(84px + env(safe-area-inset-bottom));
+    padding: 14px 14px calc(80px + env(safe-area-inset-bottom));
   }
-}
 
-@media (max-width: 620px) {
-  .lienzo {
-    padding: 14px 12px calc(84px + env(safe-area-inset-bottom));
+  .seccion-head {
+    gap: 10px;
   }
-  .barra-filtros .select,
-  .barra-filtros .search-wrap {
+
+  /* Las barras de filtros sueltas se apilan a lo ancho completo. */
+  .barra-filtros > * {
     flex: 1 1 100%;
     min-width: 0;
+  }
+
+  .barra-filtros .chip {
+    flex: 0 0 auto;
   }
 }

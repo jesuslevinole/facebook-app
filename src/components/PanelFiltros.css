@@ -1,0 +1,103 @@
+.panel-filtros {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.pf-linea {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.pf-busqueda {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.pf-campos {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.pf-campos > * {
+  flex: 0 0 auto;
+}
+
+/* El botón de filtros solo existe en móvil: en escritorio los campos ya
+   están todos a la vista. */
+.pf-toggle {
+  display: none;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text-2);
+  font-family: var(--font-display);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pf-toggle.con-filtros {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.pf-conteo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: var(--r-pill);
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-size: var(--t-xs);
+}
+
+@media (max-width: 900px) {
+  .pf-toggle {
+    display: inline-flex;
+  }
+
+  .pf-accion {
+    display: none;
+  }
+
+  .pf-campos {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background: var(--surface);
+  }
+
+  .pf-campos.abierto {
+    display: flex;
+    animation: pf-abre 160ms ease-out;
+  }
+
+  .pf-campos > * {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+}
+
+@keyframes pf-abre {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}

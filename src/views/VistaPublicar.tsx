@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import CampoBusqueda from '../components/CampoBusqueda';
+import PanelFiltros from '../components/PanelFiltros';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
 import type { Vista } from '../components/Navegacion';
@@ -329,13 +330,7 @@ export default function VistaPublicar({
         </div>
       )}
 
-      <div className="barra-filtros">
-        <CampoBusqueda
-          valor={busqueda}
-          alCambiar={setBusqueda}
-          marcador="Buscar grupo o mensaje en la ruta"
-        />
-
+      <div className="tabs-linea">
         {(['sinPublicar', 'publicados'] as Filtro[]).map((f) => (
           <button
             key={f}
@@ -347,20 +342,31 @@ export default function VistaPublicar({
             {f === 'publicados' && `Publicados (${publicadasHoy.length})`}
           </button>
         ))}
-        <span className="spacer" />
+      </div>
+
+      <PanelFiltros
+        activos={busqueda ? 1 : 0}
+        busqueda={
+          <CampoBusqueda
+            valor={busqueda}
+            alCambiar={setBusqueda}
+            marcador="Buscar grupo o mensaje"
+          />
+        }
+      >
         <button
           type="button"
-          className="btn btn-outline btn-sm"
+          className="btn btn-outline"
           onClick={() => setAlternativas({})}
           disabled={Object.keys(alternativas).length === 0}
         >
-          <RefreshCcw size={14} />
+          <RefreshCcw size={15} />
           Restaurar mensajes
         </button>
 
         <button
           type="button"
-          className="btn btn-soft btn-sm"
+          className="btn btn-soft"
           onClick={async () => {
             setRegenerando(true);
             const total = await alRegenerarRuta();
@@ -374,10 +380,10 @@ export default function VistaPublicar({
           }}
           disabled={regenerando}
         >
-          <Wand2 size={14} />
+          <Wand2 size={15} />
           {regenerando ? 'Calculando…' : 'Rearmar ruta'}
         </button>
-      </div>
+      </PanelFiltros>
 
       {enEspera && filtro === 'sinPublicar' && (
         <div className="espera card">

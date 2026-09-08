@@ -183,7 +183,7 @@
   color: var(--primary);
 }
 
-@media (max-width: 620px) {
+@media (max-width: 900px) {
   .columna {
     width: 240px;
     flex: 0 0 240px;

@@ -3,6 +3,8 @@ import { Copy, Eye, MessagesSquare, Pencil, Plus, Trash2, TrendingUp } from 'luc
 import Modal from '../components/Modal';
 import Buscador from '../components/Buscador';
 import CampoBusqueda from '../components/CampoBusqueda';
+import PanelFiltros from '../components/PanelFiltros';
+import BotonFlotante from '../components/BotonFlotante';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
 import { borrarPlantilla, crearPlantilla, editarPlantilla } from '../services/datos';
@@ -154,13 +156,24 @@ export default function VistaMensajes({ grupos, plantillas, publicaciones, clien
       </div>
 
       {plantillas.length > 0 && (
-        <div className="barra-filtros">
-          <CampoBusqueda
-            valor={busqueda}
-            alCambiar={setBusqueda}
-            marcador="Buscar en el título o el texto del mensaje"
-          />
-
+        <PanelFiltros
+          activos={[busqueda, tonoFiltro, estadoFiltro].filter(Boolean).length}
+          busqueda={
+            <CampoBusqueda
+              valor={busqueda}
+              alCambiar={setBusqueda}
+              marcador="Buscar en el título o el texto"
+            />
+          }
+          accion={
+            puedeEditar ? (
+              <button type="button" className="btn btn-primary" onClick={() => setCreando(true)}>
+                <Plus size={16} />
+                Nuevo mensaje
+              </button>
+            ) : undefined
+          }
+        >
           <div className="filtro-buscador">
             <Buscador
               opciones={TONOS.map((t) => ({ valor: t.id, etiqueta: t.etiqueta }))}
@@ -182,7 +195,7 @@ export default function VistaMensajes({ grupos, plantillas, publicaciones, clien
               vacio="Cualquier estado"
             />
           </div>
-        </div>
+        </PanelFiltros>
       )}
 
       {plantillas.length === 0 ? (
@@ -312,6 +325,14 @@ export default function VistaMensajes({ grupos, plantillas, publicaciones, clien
             );
           })}
         </ul>
+      )}
+
+      {puedeEditar && (
+        <BotonFlotante
+          alPulsar={() => setCreando(true)}
+          etiqueta="Nuevo mensaje"
+          icono={<Plus size={19} />}
+        />
       )}
 
       {(creando || editando) && (

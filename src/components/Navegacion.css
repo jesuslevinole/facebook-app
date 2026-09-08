@@ -139,9 +139,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 3px;
   width: 100%;
-  padding: 9px 2px 8px;
+  padding: 8px 2px;
   border: 0;
   background: transparent;
   color: var(--text-3);
@@ -165,4 +166,144 @@
   .inferior {
     display: block;
   }
+}
+
+/* ============================================================
+   Menú móvil a pantalla completa
+   ============================================================ */
+.menu-movil {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
+  background: var(--sidebar);
+  overflow-y: auto;
+  animation: menu-entra 180ms ease-out;
+}
+
+@keyframes menu-entra {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+}
+
+.menu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.menu-perfil {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+}
+
+.menu-avatar {
+  width: 44px;
+  height: 44px;
+  font-size: var(--t-sm);
+}
+
+.menu-perfil-datos {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.menu-perfil-nombre {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.menu-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+}
+
+.menu-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.menu-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  /* 52px de alto: el mínimo cómodo para el pulgar. */
+  min-height: 52px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text-2);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.menu-item.activo {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.menu-pie {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 20px;
+}
+
+.menu-accion {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text-2);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.menu-accion.salir {
+  color: var(--danger);
+  border-color: var(--danger-soft);
+}
+
+/* La barra inferior sube un poco los iconos para no chocar con el gesto
+   de navegación de Android, que ocupa la franja inferior. */
+.inferior-btn {
+  min-height: 56px;
 }

@@ -3,6 +3,8 @@ import { KeyRound, Plus, Shield, Trash2, UserCog, UserPlus } from 'lucide-react'
 import Modal from '../components/Modal';
 import Buscador from '../components/Buscador';
 import CampoBusqueda from '../components/CampoBusqueda';
+import PanelFiltros from '../components/PanelFiltros';
+import BotonFlotante from '../components/BotonFlotante';
 import { coincide } from '../utils/texto';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
@@ -114,46 +116,43 @@ export default function VistaUsuarios({
 
   return (
     <section className="stack">
-      <div className="seccion-head">
-        <div className="barra-filtros usuarios-tabs">
-          <button
-            type="button"
-            className={`chip${pestana === 'usuarios' ? ' active' : ''}`}
-            onClick={() => setPestana('usuarios')}
-          >
-            Usuarios ({usuarios.length})
-          </button>
-          <button
-            type="button"
-            className={`chip${pestana === 'roles' ? ' active' : ''}`}
-            onClick={() => setPestana('roles')}
-          >
-            Roles ({roles.length})
-          </button>
-        </div>
-
-        {pestana === 'usuarios' ? (
-          <button type="button" className="btn btn-primary" onClick={() => setCreandoUsuario(true)}>
-            <UserPlus size={16} />
-            Nuevo usuario
-          </button>
-        ) : (
-          <button type="button" className="btn btn-primary" onClick={() => setCreandoRol(true)}>
-            <Plus size={16} />
-            Nuevo rol
-          </button>
-        )}
+      <div className="tabs-linea">
+        <button
+          type="button"
+          className={`chip${pestana === 'usuarios' ? ' active' : ''}`}
+          onClick={() => setPestana('usuarios')}
+        >
+          Usuarios ({usuarios.length})
+        </button>
+        <button
+          type="button"
+          className={`chip${pestana === 'roles' ? ' active' : ''}`}
+          onClick={() => setPestana('roles')}
+        >
+          Roles ({roles.length})
+        </button>
       </div>
 
-      <div className="barra-filtros">
-        <CampoBusqueda
-          valor={busqueda}
-          alCambiar={setBusqueda}
-          marcador={
-            pestana === 'usuarios' ? 'Buscar por nombre, correo o teléfono' : 'Buscar rol'
-          }
-        />
-
+      <PanelFiltros
+        activos={[busqueda, rolFiltro, estadoFiltro].filter(Boolean).length}
+        busqueda={
+          <CampoBusqueda
+            valor={busqueda}
+            alCambiar={setBusqueda}
+            marcador={pestana === 'usuarios' ? 'Buscar por nombre o correo' : 'Buscar rol'}
+          />
+        }
+        accion={
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => (pestana === 'usuarios' ? setCreandoUsuario(true) : setCreandoRol(true))}
+          >
+            {pestana === 'usuarios' ? <UserPlus size={16} /> : <Plus size={16} />}
+            {pestana === 'usuarios' ? 'Nuevo usuario' : 'Nuevo rol'}
+          </button>
+        }
+      >
         {pestana === 'usuarios' && (
           <>
             <div className="filtro-buscador">
@@ -178,7 +177,7 @@ export default function VistaUsuarios({
             </div>
           </>
         )}
-      </div>
+      </PanelFiltros>
 
       {pestana === 'usuarios' ? (
         <div className="card card-flush">
@@ -348,6 +347,12 @@ export default function VistaUsuarios({
           ))}
         </ul>
       )}
+
+      <BotonFlotante
+        alPulsar={() => (pestana === 'usuarios' ? setCreandoUsuario(true) : setCreandoRol(true))}
+        etiqueta={pestana === 'usuarios' ? 'Nuevo usuario' : 'Nuevo rol'}
+        icono={pestana === 'usuarios' ? <UserPlus size={19} /> : <Plus size={19} />}
+      />
 
       {(creandoUsuario || editandoUsuario) && (
         <FormularioUsuario

@@ -19,6 +19,8 @@ import {
 import Modal from '../components/Modal';
 import Buscador from '../components/Buscador';
 import CampoBusqueda from '../components/CampoBusqueda';
+import PanelFiltros from '../components/PanelFiltros';
+import BotonFlotante from '../components/BotonFlotante';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
 import { COMUNAS } from '../data/comunas';
@@ -426,40 +428,47 @@ export default function VistaGrupos({
 
   return (
     <section className="stack">
-      <div className="seccion-head">
-        <div className="barra-filtros usuarios-tabs">
-          <button
-            type="button"
-            className={`chip${pestana === 'todos' ? ' active' : ''}`}
-            onClick={() => {
-              setPestana('todos');
-              setSeleccion([]);
-            }}
-          >
-            Todos los grupos ({disponibles.length})
-          </button>
-          <button
-            type="button"
-            className={`chip${pestana === 'mios' ? ' active' : ''}`}
-            onClick={() => {
-              setPestana('mios');
-              setSeleccion([]);
-            }}
-          >
-            Mis grupos ({mios.length})
-          </button>
-        </div>
+      <div className="tabs-linea">
+        <button
+          type="button"
+          className={`chip${pestana === 'todos' ? ' active' : ''}`}
+          onClick={() => {
+            setPestana('todos');
+            setSeleccion([]);
+          }}
+        >
+          Todos ({disponibles.length})
+        </button>
+        <button
+          type="button"
+          className={`chip${pestana === 'mios' ? ' active' : ''}`}
+          onClick={() => {
+            setPestana('mios');
+            setSeleccion([]);
+          }}
+        >
+          Mis grupos ({mios.length})
+        </button>
+      </div>
 
-        <span className="spacer" />
-
-        <div className="grupos-busqueda">
+      <PanelFiltros
+        activos={[busqueda, estadoFiltro, comunaFiltro].filter(Boolean).length}
+        busqueda={
           <CampoBusqueda
             valor={busqueda}
             alCambiar={setBusqueda}
             marcador="Buscar por nombre, código o comuna"
           />
-        </div>
-
+        }
+        accion={
+          puedeEditar ? (
+            <button type="button" className="btn btn-primary" onClick={() => setCreando(true)}>
+              <Plus size={16} />
+              Nuevo grupo
+            </button>
+          ) : undefined
+        }
+      >
         <div className="grupos-comuna">
           <Buscador
             opciones={[
@@ -476,18 +485,6 @@ export default function VistaGrupos({
           />
         </div>
 
-        {moderados > 0 && (
-          <button
-            type="button"
-            className={`chip${ocultarModerados ? ' active' : ''}`}
-            onClick={() => setOcultarModerados((o) => !o)}
-            title="Grupos donde un administrador aprueba cada publicación"
-          >
-            <ShieldAlert size={14} />
-            {ocultarModerados ? `Ocultando ${moderados} moderados` : `${moderados} moderados`}
-          </button>
-        )}
-
         <div className="grupos-comuna">
           <Buscador
             opciones={comunasEnUso.map((c) => ({ valor: c, etiqueta: c }))}
@@ -497,13 +494,17 @@ export default function VistaGrupos({
           />
         </div>
 
-        {puedeEditar && (
-          <button type="button" className="btn btn-primary" onClick={() => setCreando(true)}>
-            <Plus size={16} />
-            Nuevo grupo
+        {moderados > 0 && (
+          <button
+            type="button"
+            className={`chip${ocultarModerados ? ' active' : ''}`}
+            onClick={() => setOcultarModerados((o) => !o)}
+          >
+            <ShieldAlert size={14} />
+            {ocultarModerados ? `Ocultando ${moderados} moderados` : `${moderados} moderados`}
           </button>
         )}
-      </div>
+      </PanelFiltros>
 
       <div className="ruta-barra card">
         <label className="row ruta-todos">
@@ -928,6 +929,14 @@ export default function VistaGrupos({
             setEditando(null);
           }}
           alGuardar={guardar}
+        />
+      )}
+
+      {puedeEditar && (
+        <BotonFlotante
+          alPulsar={() => setCreando(true)}
+          etiqueta="Nuevo grupo"
+          icono={<Plus size={19} />}
         />
       )}
 

@@ -16,6 +16,8 @@ import {
 import Modal from '../components/Modal';
 import Buscador from '../components/Buscador';
 import CampoBusqueda from '../components/CampoBusqueda';
+import PanelFiltros from '../components/PanelFiltros';
+import BotonFlotante from '../components/BotonFlotante';
 import Pipeline from './Pipeline';
 import { ETAPAS, etapaDe, normalizarEstado } from '../utils/estados';
 import { useAvisos } from '../components/Avisos';
@@ -132,13 +134,47 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
 
   return (
     <section className="stack">
-      <div className="barra-filtros">
-        <CampoBusqueda
-          valor={busqueda}
-          alCambiar={setBusqueda}
-          marcador="Buscar por nombre, RUT, dirección o teléfono"
-        />
+      <div className="tabs-linea">
+        <button
+          type="button"
+          className={`chip${modo === 'pipeline' ? ' active' : ''}`}
+          onClick={() => setModo('pipeline')}
+        >
+          <KanbanSquare size={14} />
+          Pipeline
+        </button>
+        <button
+          type="button"
+          className={`chip${modo === 'tabla' ? ' active' : ''}`}
+          onClick={() => setModo('tabla')}
+        >
+          <Table2 size={14} />
+          Tabla
+        </button>
+      </div>
 
+      <PanelFiltros
+        activos={
+          [estadoFiltro !== 'todos', visibilidad !== 'todos', grupoFiltro !== 'todos'].filter(
+            Boolean
+          ).length
+        }
+        busqueda={
+          <CampoBusqueda
+            valor={busqueda}
+            alCambiar={setBusqueda}
+            marcador="Buscar por nombre, RUT, dirección o teléfono"
+          />
+        }
+        accion={
+          puedeEditar ? (
+            <button type="button" className="btn btn-primary" onClick={() => setCreando(true)}>
+              <Plus size={16} />
+              Nuevo cliente
+            </button>
+          ) : undefined
+        }
+      >
         <div className="filtro-buscador">
           <Buscador
             opciones={ETAPAS.map((e) => ({ valor: e.id, etiqueta: e.etiqueta }))}
@@ -172,35 +208,7 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
             vacio="Todos los grupos"
           />
         </div>
-
-        <div className="modo-vista">
-          <button
-            type="button"
-            className={`chip${modo === 'pipeline' ? ' active' : ''}`}
-            onClick={() => setModo('pipeline')}
-            title="Tablero por etapas"
-          >
-            <KanbanSquare size={14} />
-            Pipeline
-          </button>
-          <button
-            type="button"
-            className={`chip${modo === 'tabla' ? ' active' : ''}`}
-            onClick={() => setModo('tabla')}
-            title="Listado en tabla"
-          >
-            <Table2 size={14} />
-            Tabla
-          </button>
-        </div>
-
-        {puedeEditar && (
-          <button type="button" className="btn btn-primary" onClick={() => setCreando(true)}>
-            <Plus size={16} />
-            Nuevo cliente
-          </button>
-        )}
-      </div>
+      </PanelFiltros>
 
       {modo === 'pipeline' && !cargando && filtrados.length > 0 ? (
         <Pipeline
@@ -462,6 +470,14 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
           </>
         )}
       </div>
+      )}
+
+      {puedeEditar && (
+        <BotonFlotante
+          alPulsar={() => setCreando(true)}
+          etiqueta="Nuevo cliente"
+          icono={<Plus size={19} />}
+        />
       )}
 
       {(creando || editando) && (

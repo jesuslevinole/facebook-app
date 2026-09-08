@@ -62,12 +62,23 @@
 }
 
 .grupo-card-acciones {
-  display: flex;
+  display: grid;
   gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .grupo-card-acciones .btn {
-  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding: 0 10px;
+}
+
+/* El texto del botón se recorta antes que desbordar la tarjeta. */
+.grupo-card-acciones .btn > span,
+.cliente-acciones .btn > span,
+.ruta-card-acciones .btn > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .grupo-botones {
@@ -76,7 +87,7 @@
   flex: 0 0 auto;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 900px) {
   .tabla-grupos {
     display: none;
   }
@@ -85,7 +96,7 @@
   }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 900px) {
   .grupo-card-datos {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -120,7 +131,7 @@
   flex: 0 0 auto;
 }
 
-@media (max-width: 620px) {
+@media (max-width: 900px) {
   .grupos-comuna {
     width: 100%;
   }
@@ -247,7 +258,7 @@
   font-size: var(--t-xs);
 }
 
-@media (max-width: 620px) {
+@media (max-width: 900px) {
   .detalle-datos {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

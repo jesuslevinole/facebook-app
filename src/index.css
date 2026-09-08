@@ -327,21 +327,19 @@ ol {
   }
 }
 
+/* Un único corte para móvil. Con dos cortes (620 y 900) dos teléfonos de
+   anchos distintos veían interfaces distintas; ahora todo lo que esté bajo
+   900px se comporta igual. */
 @media (max-width: 900px) {
-  .grid-3 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  :root {
+    --pad-card: 14px;
+    --gap: 12px;
   }
-}
 
-@media (max-width: 620px) {
   .grid-2,
   .grid-3,
   .grid-4 {
     grid-template-columns: minmax(0, 1fr);
-  }
-  :root {
-    --pad-card: 16px;
-    --gap: 12px;
   }
 }
 
@@ -560,11 +558,7 @@ ol {
   grid-column: 1 / -1;
 }
 
-@media (max-width: 620px) {
-  .form-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
+
 
 /* ---------- 7. Chips, badges, píldoras ---------- */
 .chip {
@@ -832,23 +826,44 @@ ol {
   }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 900px) {
+  /* Hoja que sube desde abajo: es el patrón que la gente espera en el
+     teléfono y deja el pie de botones al alcance del pulgar. */
   .modal-backdrop {
     padding: 0;
     align-items: flex-end;
   }
+
   .modal,
   .modal-sm,
   .modal-lg {
     max-width: none;
-    max-height: 94vh;
+    max-height: 92vh;
     border-radius: var(--r-xl) var(--r-xl) 0 0;
   }
-  .modal-foot {
-    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+
+  .modal-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--surface);
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
   }
+
+  .modal-foot {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface);
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+
   .modal-foot .btn {
     flex: 1;
+    min-height: 46px;
+  }
+
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -894,6 +909,65 @@ ol {
 
 .sin-scroll {
   overflow: hidden;
+}
+
+/* Fila de pestañas: se desliza en horizontal en vez de apilarse. */
+.tabs-linea {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.tabs-linea::-webkit-scrollbar {
+  display: none;
+}
+
+.tabs-linea .chip {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 900px) {
+  /* Nada puede desbordar el ancho del teléfono: es lo que cortaba los
+     botones de las tarjetas. */
+  .card,
+  .table-scroll {
+    max-width: 100%;
+  }
+
+  /* Objetivos táctiles: 44px es el mínimo cómodo para el pulgar. */
+  .btn {
+    min-height: 44px;
+  }
+
+  .btn-sm {
+    min-height: 38px;
+    padding: 0 12px;
+  }
+
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .chip {
+    height: 38px;
+    padding: 0 14px;
+  }
+
+  .input,
+  .textarea,
+  .buscador-boton {
+    /* 16px evita que iOS haga zoom automático al enfocar el campo. */
+    font-size: 16px;
+    min-height: 46px;
+  }
+
+  .empty {
+    padding: 32px 16px;
+  }
 }
 
 .sr-only {
