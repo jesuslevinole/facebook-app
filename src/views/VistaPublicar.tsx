@@ -24,6 +24,7 @@ import {
   Wand2,
 } from 'lucide-react';
 import Modal from '../components/Modal';
+import CampoBusqueda from '../components/CampoBusqueda';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
 import type { Vista } from '../components/Navegacion';
@@ -31,6 +32,7 @@ import type { Ajustes, Cliente, Grupo, Parada, Plantilla, Publicacion } from '..
 import { borrarPublicacion, editarPublicacion, registrarPublicacion } from '../services/datos';
 import { faltaParaReinicio, horaCorta, horaDeChile, hoy } from '../utils/fecha';
 import { etiquetaHora, mejoresHoras } from '../utils/horarios';
+import { coincide } from '../utils/texto';
 import { construirMensaje } from '../utils/mensaje';
 import { abrirEnPestana, copiar } from '../utils/portapapeles';
 import { construirRuta } from '../utils/rotacion';
@@ -72,6 +74,7 @@ export default function VistaPublicar({
      segundo contra la última publicación registrada, no con un temporizador
      propio: si se recarga la página el bloqueo sigue en pie. */
   const [esperaRestante, setEsperaRestante] = useState(0);
+  const [busqueda, setBusqueda] = useState('');
 
   const fecha = hoy();
   const activas = useMemo(() => plantillas.filter((p) => p.activo), [plantillas]);
@@ -138,13 +141,22 @@ export default function VistaPublicar({
     const lista = rutaFinal.filter((p) =>
       filtro === 'sinPublicar' ? !p.publicadoHoy : p.publicadoHoy
     );
-    if (filtro !== 'publicados') return lista;
+    const filtrada = busqueda
+      ? lista.filter((p) =>
+          coincide(
+            `${p.grupo.nombre} ${p.grupo.codigo} ${p.grupo.comuna} ${p.plantilla?.titulo ?? ''}`,
+            busqueda
+          )
+        )
+      : lista;
+
+    if (filtro !== 'publicados') return filtrada;
 
     const horaDe = new Map(publicadasHoy.map((p) => [p.grupoId, p.ts]));
-    return [...lista].sort((a, b) =>
+    return [...filtrada].sort((a, b) =>
       (horaDe.get(b.grupo.id) ?? '').localeCompare(horaDe.get(a.grupo.id) ?? '')
     );
-  }, [rutaFinal, filtro, publicadasHoy]);
+  }, [rutaFinal, filtro, publicadasHoy, busqueda]);
 
   const publicacionDelGrupo = useCallback(
     (grupoId: string) => publicadasHoy.find((p) => p.grupoId === grupoId),
@@ -318,6 +330,12 @@ export default function VistaPublicar({
       )}
 
       <div className="barra-filtros">
+        <CampoBusqueda
+          valor={busqueda}
+          alCambiar={setBusqueda}
+          marcador="Buscar grupo o mensaje en la ruta"
+        />
+
         {(['sinPublicar', 'publicados'] as Filtro[]).map((f) => (
           <button
             key={f}

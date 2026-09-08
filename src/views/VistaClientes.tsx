@@ -6,7 +6,6 @@ import {
   MapPin,
   Pencil,
   Plus,
-  Search,
   Share2,
   Trash2,
   UserPlus,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import Buscador from '../components/Buscador';
+import CampoBusqueda from '../components/CampoBusqueda';
 import Pipeline from './Pipeline';
 import { ETAPAS, etapaDe, normalizarEstado } from '../utils/estados';
 import { useAvisos } from '../components/Avisos';
@@ -133,18 +133,11 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
   return (
     <section className="stack">
       <div className="barra-filtros">
-        <div className="search-wrap">
-          <span className="search-icon">
-            <Search size={16} />
-          </span>
-          <input
-            className="input"
-            type="search"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre, RUT, dirección o teléfono"
-          />
-        </div>
+        <CampoBusqueda
+          valor={busqueda}
+          alCambiar={setBusqueda}
+          marcador="Buscar por nombre, RUT, dirección o teléfono"
+        />
 
         <div className="filtro-buscador">
           <Buscador

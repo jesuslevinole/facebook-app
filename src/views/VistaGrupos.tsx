@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import Buscador from '../components/Buscador';
+import CampoBusqueda from '../components/CampoBusqueda';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
 import { COMUNAS } from '../data/comunas';
@@ -32,6 +33,7 @@ import { UMBRAL_DESCARTE } from '../utils/puntajeGrupo';
 import { CERRADAS, normalizarEstado } from '../utils/estados';
 import { grupoConMismoEnlace } from '../utils/enlaceGrupo';
 import { etiquetaHora, resumenHorario } from '../utils/horarios';
+import { coincide } from '../utils/texto';
 import { diaMes, horaCorta } from '../utils/fecha';
 import type {
   Ajustes,
@@ -107,6 +109,8 @@ export default function VistaGrupos({
   const [seleccion, setSeleccion] = useState<string[]>([]);
   const [comunaFiltro, setComunaFiltro] = useState('');
   const [ocultarModerados, setOcultarModerados] = useState(true);
+  const [busqueda, setBusqueda] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState('');
   const [pestana, setPestana] = useState<Pestana>('todos');
   const [editando, setEditando] = useState<Grupo | null>(null);
   const [creando, setCreando] = useState(false);
@@ -164,13 +168,31 @@ export default function VistaGrupos({
 
   /* «Todos los grupos» muestra solo los que aún no son míos: al marcarse
      como miembro, el grupo desaparece de acá y pasa a «Mis grupos». */
+  const enRutaIds = useMemo(() => new Set(ruta), [ruta]);
+
   const disponibles = rendimiento.filter((r) => !misGrupos.has(r.grupo.id));
   const mios = rendimiento.filter((r) => misGrupos.has(r.grupo.id));
   const base = pestana === 'todos' ? disponibles : mios;
   const porComuna = comunaFiltro ? base.filter((r) => r.grupo.comuna === comunaFiltro) : base;
-  const visibles = ocultarModerados
+  const porModerados = ocultarModerados
     ? porComuna.filter((r) => !r.grupo.requiereAprobacion)
     : porComuna;
+
+  const porEstado = porModerados.filter((r) => {
+    if (estadoFiltro === 'enRuta') return enRutaIds.has(r.grupo.id);
+    if (estadoFiltro === 'fueraRuta') return !enRutaIds.has(r.grupo.id);
+    if (estadoFiltro === 'publicadoHoy') return r.publicadoHoy;
+    if (estadoFiltro === 'pausados') return !r.grupo.activo;
+    if (estadoFiltro === 'sinRespuesta') return r.puntaje?.descartado;
+    if (estadoFiltro === 'moderados') return r.grupo.requiereAprobacion;
+    return true;
+  });
+
+  const visibles = busqueda
+    ? porEstado.filter((r) =>
+        coincide(`${r.grupo.nombre} ${r.grupo.codigo} ${r.grupo.comuna}`, busqueda)
+      )
+    : porEstado;
 
   const moderados = base.filter((r) => r.grupo.requiereAprobacion).length;
 
@@ -179,7 +201,7 @@ export default function VistaGrupos({
     return [...set].sort((a, b) => a.localeCompare(b, 'es'));
   }, [grupos]);
 
-  const enRuta = useMemo(() => new Set(ruta), [ruta]);
+
 
   /* El mensaje que se copia al abrir un grupo es el mismo que la ruta le
      asignaría hoy: así el texto coincide con el de la vista Publicar. */
@@ -264,7 +286,7 @@ export default function VistaGrupos({
   };
 
   const agregarARuta = async () => {
-    const nuevos = seleccion.filter((id) => !enRuta.has(id));
+    const nuevos = seleccion.filter((id) => !enRutaIds.has(id));
     if (nuevos.length === 0) {
       avisar('Los grupos elegidos ya están en la ruta.', 'info');
       return;
@@ -348,7 +370,7 @@ export default function VistaGrupos({
     const marcar = !grupo.requiereAprobacion;
     try {
       await editarGrupo(grupo.id, { requiereAprobacion: marcar });
-      if (marcar && enRuta.has(grupo.id)) {
+      if (marcar && enRutaIds.has(grupo.id)) {
         await alCambiarRuta(ruta.filter((id) => id !== grupo.id));
       }
       avisar(
@@ -429,6 +451,30 @@ export default function VistaGrupos({
         </div>
 
         <span className="spacer" />
+
+        <div className="grupos-busqueda">
+          <CampoBusqueda
+            valor={busqueda}
+            alCambiar={setBusqueda}
+            marcador="Buscar por nombre, código o comuna"
+          />
+        </div>
+
+        <div className="grupos-comuna">
+          <Buscador
+            opciones={[
+              { valor: 'enRuta', etiqueta: 'En la ruta de hoy' },
+              { valor: 'fueraRuta', etiqueta: 'Fuera de la ruta' },
+              { valor: 'publicadoHoy', etiqueta: 'Publicados hoy' },
+              { valor: 'pausados', etiqueta: 'En pausa' },
+              { valor: 'sinRespuesta', etiqueta: 'Sin respuesta' },
+              { valor: 'moderados', etiqueta: 'Requieren aprobación' },
+            ]}
+            valor={estadoFiltro}
+            alCambiar={setEstadoFiltro}
+            vacio="Cualquier estado"
+          />
+        </div>
 
         {moderados > 0 && (
           <button
@@ -527,12 +573,18 @@ export default function VistaGrupos({
               <UsersRound size={22} />
             </span>
             <p className="empty-title">
-              {pestana === 'todos' ? 'Ya estás en todos los grupos' : 'Todavía no tienes grupos'}
+              {busqueda || estadoFiltro
+                ? 'Ningún grupo coincide'
+                : pestana === 'todos'
+                  ? 'Ya estás en todos los grupos'
+                  : 'Todavía no tienes grupos'}
             </p>
             <p className="text-sm muted">
-              {pestana === 'todos'
-                ? 'No queda ninguno por marcar. Si agregan grupos nuevos, aparecerán acá.'
-                : 'Ve a «Todos los grupos» y marca en cuáles ya te aceptaron.'}
+              {busqueda || estadoFiltro
+                ? 'Prueba con otro texto o limpia los filtros.'
+                : pestana === 'todos'
+                  ? 'No queda ninguno por marcar. Si agregan grupos nuevos, aparecerán acá.'
+                  : 'Ve a «Todos los grupos» y marca en cuáles ya te aceptaron.'}
             </p>
             {pestana === 'mios' && (
               <button type="button" className="btn btn-primary" onClick={() => setPestana('todos')}>
@@ -587,7 +639,7 @@ export default function VistaGrupos({
                         </button>
                         <span className="row">
                           <span className="code-tag">{r.grupo.codigo}</span>
-                          {enRuta.has(r.grupo.id) && <span className="badge blue">En ruta</span>}
+                          {enRutaIds.has(r.grupo.id) && <span className="badge blue">En ruta</span>}
                           {r.puntaje?.descartado && <span className="badge red">Sin respuesta</span>}
                           {r.grupo.requiereAprobacion && (
                             <span className="badge amber">Requiere aprobación</span>
@@ -885,7 +937,7 @@ export default function VistaGrupos({
           publicaciones={publicaciones.filter((p) => p.grupoId === detalle.grupo.id)}
           esMio={misGrupos.has(detalle.grupo.id)}
           puedeEditar={puedeEditar}
-          enRuta={enRuta.has(detalle.grupo.id)}
+          enRuta={enRutaIds.has(detalle.grupo.id)}
           alCerrar={() => setDetalle(null)}
           alModerar={() => void alternarModeracion(detalle.grupo)}
           alPausar={() => void alternarActivo(detalle.grupo)}

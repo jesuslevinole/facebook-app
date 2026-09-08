@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown, Search, X } from 'lucide-react';
+import { normalizar } from '../utils/texto';
 import './Buscador.css';
 
 export interface OpcionBuscador {
@@ -184,10 +185,3 @@ export default function Buscador({
   );
 }
 
-function normalizar(texto: string): string {
-  return texto
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-}

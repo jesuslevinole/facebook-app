@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { KeyRound, Plus, Shield, Trash2, UserCog, UserPlus } from 'lucide-react';
 import Modal from '../components/Modal';
 import Buscador from '../components/Buscador';
+import CampoBusqueda from '../components/CampoBusqueda';
+import { coincide } from '../utils/texto';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
 import { crearCuentaSinCambiarSesion, mensajeDeError, recuperarClave } from '../services/auth';
@@ -39,6 +41,9 @@ export default function VistaUsuarios({
   const [editandoRol, setEditandoRol] = useState<Rol | null>(null);
   const [creandoRol, setCreandoRol] = useState(false);
   const [porBorrar, setPorBorrar] = useState<{ tipo: 'usuario' | 'rol'; id: string; nombre: string } | null>(null);
+  const [busqueda, setBusqueda] = useState('');
+  const [rolFiltro, setRolFiltro] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState('');
 
   const nombreRol = useMemo(() => {
     const mapa = new Map(roles.map((r) => [r.id, r.nombre]));
@@ -50,6 +55,24 @@ export default function VistaUsuarios({
     usuarios.forEach((u) => mapa.set(u.rolId, (mapa.get(u.rolId) ?? 0) + 1));
     return mapa;
   }, [usuarios]);
+
+  const usuariosVisibles = useMemo(
+    () =>
+      usuarios.filter((u) => {
+        if (rolFiltro && u.rolId !== rolFiltro) return false;
+        if (estadoFiltro === 'activos' && !u.activo) return false;
+        if (estadoFiltro === 'inactivos' && u.activo) return false;
+        if (busqueda) return coincide(`${u.nombre} ${u.email} ${u.telefono}`, busqueda);
+        return true;
+      }),
+    [usuarios, rolFiltro, estadoFiltro, busqueda]
+  );
+
+  const rolesVisibles = useMemo(
+    () =>
+      busqueda ? roles.filter((r) => coincide(`${r.nombre} ${r.descripcion}`, busqueda)) : roles,
+    [roles, busqueda]
+  );
 
   const alternarActivo = async (usuario: Usuario) => {
     if (usuario.id === perfil?.id) {
@@ -122,6 +145,41 @@ export default function VistaUsuarios({
         )}
       </div>
 
+      <div className="barra-filtros">
+        <CampoBusqueda
+          valor={busqueda}
+          alCambiar={setBusqueda}
+          marcador={
+            pestana === 'usuarios' ? 'Buscar por nombre, correo o teléfono' : 'Buscar rol'
+          }
+        />
+
+        {pestana === 'usuarios' && (
+          <>
+            <div className="filtro-buscador">
+              <Buscador
+                opciones={roles.map((r) => ({ valor: r.id, etiqueta: r.nombre }))}
+                valor={rolFiltro}
+                alCambiar={setRolFiltro}
+                vacio="Cualquier rol"
+              />
+            </div>
+
+            <div className="filtro-buscador">
+              <Buscador
+                opciones={[
+                  { valor: 'activos', etiqueta: 'Solo activos' },
+                  { valor: 'inactivos', etiqueta: 'Desactivados' },
+                ]}
+                valor={estadoFiltro}
+                alCambiar={setEstadoFiltro}
+                vacio="Cualquier estado"
+              />
+            </div>
+          </>
+        )}
+      </div>
+
       {pestana === 'usuarios' ? (
         <div className="card card-flush">
           <div className="table-scroll tabla-usuarios">
@@ -137,7 +195,7 @@ export default function VistaUsuarios({
                 </tr>
               </thead>
               <tbody>
-                {usuarios.map((u) => (
+                {usuariosVisibles.map((u) => (
                   <tr key={u.id}>
                     <td>
                       <div className="row">
@@ -198,7 +256,7 @@ export default function VistaUsuarios({
           </div>
 
           <ul className="usuarios-tarjetas">
-            {usuarios.map((u) => (
+            {usuariosVisibles.map((u) => (
               <li key={u.id} className="usuario-card">
                 <div className="row row-between">
                   <div className="row">
@@ -243,7 +301,7 @@ export default function VistaUsuarios({
         </div>
       ) : (
         <ul className="roles">
-          {roles.map((rol) => (
+          {rolesVisibles.map((rol) => (
             <li key={rol.id} className="rol card">
               <header className="rol-head">
                 <div className="rol-titulo">

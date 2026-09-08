@@ -258,3 +258,15 @@
     display: none;
   }
 }
+
+.grupos-busqueda {
+  width: 250px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 900px) {
+  .grupos-busqueda {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+}

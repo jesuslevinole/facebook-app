@@ -2,12 +2,14 @@ import { useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Copy, Eye, MessagesSquare, Pencil, Plus, Trash2, TrendingUp } from 'lucide-react';
 import Modal from '../components/Modal';
 import Buscador from '../components/Buscador';
+import CampoBusqueda from '../components/CampoBusqueda';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
 import { borrarPlantilla, crearPlantilla, editarPlantilla } from '../services/datos';
 import type { Cliente, Grupo, Identidad, Plantilla, Publicacion, TonoPlantilla } from '../types';
 import { diaMes, hoy } from '../utils/fecha';
 import { EFECTIVIDAD_VACIA, calcularEfectividad } from '../utils/efectividad';
+import { coincide } from '../utils/texto';
 import { combinaciones, construirMensaje } from '../utils/mensaje';
 import { copiar } from '../utils/portapapeles';
 import './VistaMensajes.css';
@@ -64,6 +66,9 @@ export default function VistaMensajes({ grupos, plantillas, publicaciones, clien
   const [creando, setCreando] = useState(false);
   const [porBorrar, setPorBorrar] = useState<Plantilla | null>(null);
   const [previa, setPrevia] = useState<Plantilla | null>(null);
+  const [busqueda, setBusqueda] = useState('');
+  const [tonoFiltro, setTonoFiltro] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState('');
 
   const efectividad = useMemo(
     () => calcularEfectividad(plantillas, publicaciones, clientes),
@@ -120,6 +125,19 @@ export default function VistaMensajes({ grupos, plantillas, publicaciones, clien
   const grupoMuestra = grupos[0] ?? GRUPO_EJEMPLO;
   const activas = plantillas.filter((p) => p.activo).length;
 
+  const visibles = useMemo(
+    () =>
+      plantillas.filter((p) => {
+        if (tonoFiltro && p.tono !== tonoFiltro) return false;
+        if (estadoFiltro === 'activos' && !p.activo) return false;
+        if (estadoFiltro === 'pausados' && p.activo) return false;
+        if (estadoFiltro === 'sinUsar' && (efectividad.get(p.id)?.usos ?? 0) > 0) return false;
+        if (busqueda) return coincide(`${p.titulo} ${p.cuerpo}`, busqueda);
+        return true;
+      }),
+    [plantillas, tonoFiltro, estadoFiltro, busqueda, efectividad]
+  );
+
   return (
     <section className="stack">
       <div className="seccion-head">
@@ -134,6 +152,38 @@ export default function VistaMensajes({ grupos, plantillas, publicaciones, clien
           </button>
         )}
       </div>
+
+      {plantillas.length > 0 && (
+        <div className="barra-filtros">
+          <CampoBusqueda
+            valor={busqueda}
+            alCambiar={setBusqueda}
+            marcador="Buscar en el título o el texto del mensaje"
+          />
+
+          <div className="filtro-buscador">
+            <Buscador
+              opciones={TONOS.map((t) => ({ valor: t.id, etiqueta: t.etiqueta }))}
+              valor={tonoFiltro}
+              alCambiar={setTonoFiltro}
+              vacio="Cualquier tono"
+            />
+          </div>
+
+          <div className="filtro-buscador">
+            <Buscador
+              opciones={[
+                { valor: 'activos', etiqueta: 'Solo activos' },
+                { valor: 'pausados', etiqueta: 'En pausa' },
+                { valor: 'sinUsar', etiqueta: 'Sin usar todavía' },
+              ]}
+              valor={estadoFiltro}
+              alCambiar={setEstadoFiltro}
+              vacio="Cualquier estado"
+            />
+          </div>
+        </div>
+      )}
 
       {plantillas.length === 0 ? (
         <div className="card">
@@ -153,9 +203,16 @@ export default function VistaMensajes({ grupos, plantillas, publicaciones, clien
             )}
           </div>
         </div>
+      ) : visibles.length === 0 ? (
+        <div className="card">
+          <div className="empty">
+            <p className="empty-title">Ningún mensaje coincide</p>
+            <p className="text-sm muted">Prueba con otro texto o limpia los filtros.</p>
+          </div>
+        </div>
       ) : (
         <ul className="mensajes">
-          {plantillas.map((p) => {
+          {visibles.map((p) => {
             const tono = TONOS.find((t) => t.id === p.tono) ?? TONOS[0];
             const variantes = combinaciones(p.cuerpo);
             const datos = efectividad.get(p.id) ?? { plantillaId: p.id, ...EFECTIVIDAD_VACIA };
