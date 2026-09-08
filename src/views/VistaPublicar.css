@@ -312,3 +312,25 @@
 .espera-barra {
   width: 100%;
 }
+
+/* ---------- Resumen horario ---------- */
+.horario {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-left: 3px solid var(--c1);
+}
+
+.horario-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: var(--r-pill);
+  background: var(--primary-soft);
+  color: var(--primary);
+}

@@ -19,6 +19,7 @@ import {
   Undo2,
   UserCheck,
   UserX,
+  Clock,
   Timer,
   Wand2,
 } from 'lucide-react';
@@ -29,6 +30,7 @@ import type { Vista } from '../components/Navegacion';
 import type { Ajustes, Cliente, Grupo, Parada, Plantilla, Publicacion } from '../types';
 import { borrarPublicacion, editarPublicacion, registrarPublicacion } from '../services/datos';
 import { faltaParaReinicio, horaCorta, horaDeChile, hoy } from '../utils/fecha';
+import { etiquetaHora, mejoresHoras } from '../utils/horarios';
 import { construirMensaje } from '../utils/mensaje';
 import { abrirEnPestana, copiar } from '../utils/portapapeles';
 import { construirRuta } from '../utils/rotacion';
@@ -119,14 +121,30 @@ export default function VistaPublicar({
   }, [ultimaPublicacion, esperaSegundos]);
 
   const enEspera = esperaRestante > 0;
+
+  /* Perfil horario del vendedor, calculado sobre todo su historial. */
+  const franjasBuenas = useMemo(() => mejoresHoras(publicaciones, 3), [publicaciones]);
+  const horaActual = horaDeChile();
   const pendientes = rutaFinal.filter((p) => !p.publicadoHoy).length;
   const clientesHoy = clientes.filter((c) => c.createdAt.slice(0, 10) === fecha).length;
 
   /* Dos listas excluyentes: al registrar una publicación el grupo sale de
-     «Sin publicar» y aparece en «Publicados» sin que haya que recargar. */
-  const visibles = rutaFinal.filter((p) =>
-    filtro === 'sinPublicar' ? !p.publicadoHoy : p.publicadoHoy
-  );
+     «Sin publicar» y aparece en «Publicados» sin que haya que recargar.
+
+     «Publicados» va del más reciente al más antiguo, que es el orden en que
+     se revisan las interacciones: lo último publicado es lo que todavía no
+     se midió. «Sin publicar» conserva el orden de la ruta. */
+  const visibles = useMemo(() => {
+    const lista = rutaFinal.filter((p) =>
+      filtro === 'sinPublicar' ? !p.publicadoHoy : p.publicadoHoy
+    );
+    if (filtro !== 'publicados') return lista;
+
+    const horaDe = new Map(publicadasHoy.map((p) => [p.grupoId, p.ts]));
+    return [...lista].sort((a, b) =>
+      (horaDe.get(b.grupo.id) ?? '').localeCompare(horaDe.get(a.grupo.id) ?? '')
+    );
+  }, [rutaFinal, filtro, publicadasHoy]);
 
   const publicacionDelGrupo = useCallback(
     (grupoId: string) => publicadasHoy.find((p) => p.grupoId === grupoId),
@@ -282,6 +300,22 @@ export default function VistaPublicar({
           </p>
         </div>
       </article>
+
+      {franjasBuenas.length > 0 && (
+        <div className="horario card">
+          <span className="horario-icono">
+            <Clock size={16} />
+          </span>
+          <p className="text-sm">
+            <strong>Tus mejores horas:</strong>{' '}
+            {franjasBuenas
+              .map((f) => `${etiquetaHora(f.hora)} (${f.promedio.toFixed(1)} int./pub.)`)
+              .join(' · ')}
+          </p>
+          <span className="spacer" />
+          <span className="badge blue">Ahora son las {etiquetaHora(horaActual)}</span>
+        </div>
+      )}
 
       <div className="barra-filtros">
         {(['sinPublicar', 'publicados'] as Filtro[]).map((f) => (
@@ -696,7 +730,9 @@ function Fila({
 
         <td>
           <span className={`badge ${parada.publicadoHoy ? 'green' : bloqueado ? 'amber' : 'blue'}`}>
-            {parada.publicadoHoy && registro ? `Publicado ${horaCorta(registro.ts)}` : parada.motivo}
+            {parada.publicadoHoy && registro
+              ? `Publicado a las ${horaCorta(registro.ts)}`
+              : parada.motivo}
           </span>
           {registro && (registro.likes || registro.comentarios || registro.factibles) ? (
             <span className="row interacciones-mini">

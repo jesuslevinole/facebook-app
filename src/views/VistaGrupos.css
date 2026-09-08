@@ -139,3 +139,122 @@
 .ratio-buenos {
   color: var(--success);
 }
+
+.nombre-enlace {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  text-align: left;
+}
+
+.nombre-enlace:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* ---------- Detalle del grupo ---------- */
+.detalle-datos {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.detalle-datos dd {
+  margin-top: 2px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.detalle-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.horas {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 74px;
+}
+
+.hora-col {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  height: 100%;
+  min-width: 0;
+}
+
+.hora-barra {
+  width: 100%;
+  height: var(--altura, 2%);
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  background: var(--track);
+}
+
+.hora-barra.activa {
+  background: var(--c1);
+}
+
+.hora-barra.mejor {
+  background: var(--success);
+}
+
+.hora-label {
+  font-size: 9px;
+  color: var(--text-3);
+}
+
+.detalle-acciones {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.detalle-historial {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.detalle-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: var(--t-xs);
+}
+
+@media (max-width: 620px) {
+  .detalle-datos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .detalle-acciones {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hora-label {
+    display: none;
+  }
+}

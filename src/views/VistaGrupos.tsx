@@ -9,6 +9,7 @@ import {
   Pause,
   Pencil,
   Play,
+  Clock,
   Plus,
   ShieldAlert,
   ShieldCheck,
@@ -30,6 +31,8 @@ import {
 import { UMBRAL_DESCARTE } from '../utils/puntajeGrupo';
 import { CERRADAS, normalizarEstado } from '../utils/estados';
 import { grupoConMismoEnlace } from '../utils/enlaceGrupo';
+import { etiquetaHora, resumenHorario } from '../utils/horarios';
+import { diaMes, horaCorta } from '../utils/fecha';
 import type {
   Ajustes,
   Cliente,
@@ -109,6 +112,7 @@ export default function VistaGrupos({
   const [creando, setCreando] = useState(false);
   const [porBorrar, setPorBorrar] = useState<Grupo | null>(null);
   const [porSalir, setPorSalir] = useState<Grupo | null>(null);
+  const [detalle, setDetalle] = useState<Rendimiento | null>(null);
 
   const puedeEditar = puede('grupos.editar');
   const fecha = hoy();
@@ -574,7 +578,13 @@ export default function VistaGrupos({
                     </td>
                     <td>
                       <div className="celda-nombre">
-                        <span className="celda-fuerte truncate">{r.grupo.nombre}</span>
+                        <button
+                          type="button"
+                          className="nombre-enlace truncate"
+                          onClick={() => setDetalle(r)}
+                        >
+                          {r.grupo.nombre}
+                        </button>
                         <span className="row">
                           <span className="code-tag">{r.grupo.codigo}</span>
                           {enRuta.has(r.grupo.id) && <span className="badge blue">En ruta</span>}
@@ -755,7 +765,13 @@ export default function VistaGrupos({
                     />
                   </label>
                   <div className="celda-nombre">
-                    <span className="celda-fuerte truncate">{r.grupo.nombre}</span>
+                    <button
+                      type="button"
+                      className="nombre-enlace truncate"
+                      onClick={() => setDetalle(r)}
+                    >
+                      {r.grupo.nombre}
+                    </button>
                     <span className="row">
                       <span className="code-tag">{r.grupo.codigo}</span>
                       {r.grupo.comuna && <span className="text-sm muted">{r.grupo.comuna}</span>}
@@ -860,6 +876,32 @@ export default function VistaGrupos({
             setEditando(null);
           }}
           alGuardar={guardar}
+        />
+      )}
+
+      {detalle && (
+        <DetalleGrupo
+          fila={detalle}
+          publicaciones={publicaciones.filter((p) => p.grupoId === detalle.grupo.id)}
+          esMio={misGrupos.has(detalle.grupo.id)}
+          puedeEditar={puedeEditar}
+          enRuta={enRuta.has(detalle.grupo.id)}
+          alCerrar={() => setDetalle(null)}
+          alModerar={() => void alternarModeracion(detalle.grupo)}
+          alPausar={() => void alternarActivo(detalle.grupo)}
+          alEditar={() => {
+            setEditando(detalle.grupo);
+            setDetalle(null);
+          }}
+          alSalir={() => {
+            setPorSalir(detalle.grupo);
+            setDetalle(null);
+          }}
+          alUnirse={() => {
+            void unirse(detalle.grupo);
+            setDetalle(null);
+          }}
+          alCopiar={() => copiarYAbrir(detalle.grupo)}
         />
       )}
 
@@ -1108,6 +1150,189 @@ function FormularioGrupo({
             </span>
           </span>
         </label>
+      </div>
+    </Modal>
+  );
+}
+
+/* ---------- Detalle del grupo ---------- */
+
+interface DetalleProps {
+  fila: Rendimiento;
+  publicaciones: Publicacion[];
+  esMio: boolean;
+  puedeEditar: boolean;
+  enRuta: boolean;
+  alCerrar: () => void;
+  alModerar: () => void;
+  alPausar: () => void;
+  alEditar: () => void;
+  alSalir: () => void;
+  alUnirse: () => void;
+  alCopiar: () => void;
+}
+
+/* Ficha completa del grupo: sus cifras, a qué hora responde y las acciones
+   que antes estaban repartidas en iconos pequeños de la tabla. */
+function DetalleGrupo({
+  fila,
+  publicaciones,
+  esMio,
+  puedeEditar,
+  enRuta,
+  alCerrar,
+  alModerar,
+  alPausar,
+  alEditar,
+  alSalir,
+  alUnirse,
+  alCopiar,
+}: DetalleProps) {
+  const { grupo, puntaje } = fila;
+
+  const franjas = useMemo(() => resumenHorario(publicaciones), [publicaciones]);
+  const topeFranja = Math.max(0.001, ...franjas.map((f) => f.promedio));
+  const conDatos = franjas.some((f) => f.publicaciones > 0);
+
+  const recientes = useMemo(
+    () => [...publicaciones].sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 6),
+    [publicaciones]
+  );
+
+  return (
+    <Modal
+      titulo={grupo.nombre}
+      descripcion={`${grupo.codigo}${grupo.comuna ? ` · ${grupo.comuna}` : ''}${
+        grupo.miembros ? ` · ${grupo.miembros.toLocaleString('es-CL')} miembros` : ''
+      }`}
+      ancho="lg"
+      alCerrar={alCerrar}
+      pie={
+        <>
+          <button type="button" className="btn btn-outline" onClick={alCerrar}>
+            Cerrar
+          </button>
+          <button type="button" className="btn btn-primary" onClick={alCopiar}>
+            <Copy size={15} />
+            Copiar y abrir
+          </button>
+        </>
+      }
+    >
+      <div className="row row-wrap">
+        {enRuta && <span className="badge blue">En la ruta de hoy</span>}
+        {grupo.requiereAprobacion && <span className="badge amber">Requiere aprobación</span>}
+        {!grupo.activo && <span className="badge">En pausa</span>}
+        {puntaje?.descartado && <span className="badge red">Sin respuesta</span>}
+        {puntaje?.porProbar && <span className="badge">{puntaje.motivo}</span>}
+      </div>
+
+      <dl className="detalle-datos">
+        <div>
+          <dt className="eyebrow">Publicaciones</dt>
+          <dd>{puntaje?.publicaciones ?? 0}</dd>
+        </div>
+        <div>
+          <dt className="eyebrow">Interacciones</dt>
+          <dd>{puntaje?.interacciones ?? 0}</dd>
+        </div>
+        <div>
+          <dt className="eyebrow">Útiles / no</dt>
+          <dd>
+            {puntaje?.factibles ?? 0} / {puntaje?.noFactibles ?? 0}
+          </dd>
+        </div>
+        <div>
+          <dt className="eyebrow">Clientes</dt>
+          <dd>{fila.clientesTotal}</dd>
+        </div>
+      </dl>
+
+      <section className="detalle-seccion">
+        <p className="eyebrow">
+          <Clock size={12} /> A qué hora responde
+        </p>
+
+        {conDatos ? (
+          <>
+            <div className="horas">
+              {franjas.map((f) => {
+                const esMejor = puntaje?.mejorHora === f.hora;
+                const clase = esMejor ? ' mejor' : f.publicaciones > 0 ? ' activa' : '';
+                return (
+                  <span key={f.hora} className="hora-col" title={`${etiquetaHora(f.hora)} · ${f.publicaciones} publicaciones, ${f.interacciones} interacciones`}>
+                    <span
+                      className={`hora-barra${clase}`}
+                      style={{ '--altura': `${(f.promedio / topeFranja) * 100}%` } as CSSProperties}
+                    />
+                    <span className="hora-label">{f.hora % 3 === 0 ? f.hora : ''}</span>
+                  </span>
+                );
+              })}
+            </div>
+            <p className="text-sm muted-soft">
+              {puntaje?.mejorHora !== null && puntaje?.mejorHora !== undefined
+                ? `Mejor rendimiento cerca de las ${etiquetaHora(puntaje.mejorHora)}. La ruta prioriza este grupo a esa hora.`
+                : 'Todavía sin interacciones registradas: no se puede saber su mejor hora.'}
+            </p>
+          </>
+        ) : (
+          <p className="text-sm muted">
+            Aún no has publicado acá. Cuando publiques y registres interacciones, aparecerá el
+            perfil horario del grupo.
+          </p>
+        )}
+      </section>
+
+      {recientes.length > 0 && (
+        <section className="detalle-seccion">
+          <p className="eyebrow">Últimas publicaciones</p>
+          <ul className="detalle-historial">
+            {recientes.map((p) => (
+              <li key={p.id} className="detalle-fila">
+                <span className="num">{diaMes(p.fecha)}</span>
+                <span className="muted-soft">{horaCorta(p.ts)}</span>
+                <span className="truncate spacer">{p.plantillaTitulo}</span>
+                <span className="muted-soft">
+                  {(p.likes ?? 0) + (p.comentarios ?? 0) + (p.factibles ?? 0)} int.
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <div className="detalle-acciones">
+        <button type="button" className="btn btn-outline" onClick={alModerar}>
+          <ShieldAlert size={15} />
+          {grupo.requiereAprobacion ? 'Quitar marca de aprobación' : 'Piden aprobación del admin'}
+        </button>
+
+        {puedeEditar && (
+          <button type="button" className="btn btn-outline" onClick={alPausar}>
+            {grupo.activo ? <Pause size={15} /> : <Play size={15} />}
+            {grupo.activo ? 'Pausar el grupo' : 'Reactivar el grupo'}
+          </button>
+        )}
+
+        {puedeEditar && (
+          <button type="button" className="btn btn-outline" onClick={alEditar}>
+            <Pencil size={15} />
+            Editar datos
+          </button>
+        )}
+
+        {esMio ? (
+          <button type="button" className="btn btn-outline" onClick={alSalir}>
+            <LogOut size={15} />
+            Ya no soy miembro
+          </button>
+        ) : (
+          <button type="button" className="btn btn-primary" onClick={alUnirse}>
+            <Check size={15} />
+            Ya soy miembro
+          </button>
+        )}
       </div>
     </Modal>
   );
