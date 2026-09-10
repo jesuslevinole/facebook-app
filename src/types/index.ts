@@ -131,6 +131,8 @@ export interface Plantilla {
   cuerpo: string;
   tono: TonoPlantilla;
   activo: boolean;
+  /** Id de la imagen adjunta en la colección `imagenes`. Vacío = sin imagen. */
+  imagenId: string;
   createdAt: string;
 }
 
@@ -160,6 +162,11 @@ export interface Publicacion {
   comentarios: number;
   factibles: number;
   noFactibles: number;
+
+  /* Enlace a la publicación en Facebook. Se pega después de publicar y es
+     lo que permite volver a ella para contar likes y comentarios sin tener
+     que buscarla entre todo el muro del grupo. */
+  enlace: string;
 
   /* Hora local de Chile en que se publicó (0–23). Permite aprender a qué
      hora responde cada grupo para este vendedor en particular: un grupo
@@ -230,3 +237,5 @@ export interface Parada {
   diasSinPublicar: number | null;
   motivo: string;
 }
+
+export type { Novedad, TipoNovedad } from './novedades';

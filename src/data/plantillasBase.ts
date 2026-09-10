@@ -7,6 +7,7 @@ import type { Plantilla } from '../types';
 export const PLANTILLAS_BASE: Omit<Plantilla, 'id' | 'createdAt' | 'uid'>[] = [
   {
     titulo: 'Oferta directa · fibra',
+    imagenId: '',
     tono: 'oferta',
     activo: true,
     cuerpo:
@@ -20,6 +21,7 @@ export const PLANTILLAS_BASE: Omit<Plantilla, 'id' | 'createdAt' | 'uid'>[] = [
   },
   {
     titulo: 'Pregunta abierta · dolor de conexión',
+    imagenId: '',
     tono: 'pregunta',
     activo: true,
     cuerpo:
@@ -29,6 +31,7 @@ export const PLANTILLAS_BASE: Omit<Plantilla, 'id' | 'createdAt' | 'uid'>[] = [
   },
   {
     titulo: 'Comparación Claro / VTR',
+    imagenId: '',
     tono: 'directo',
     activo: true,
     cuerpo:
@@ -38,6 +41,7 @@ export const PLANTILLAS_BASE: Omit<Plantilla, 'id' | 'createdAt' | 'uid'>[] = [
   },
   {
     titulo: 'Testimonio de instalación',
+    imagenId: '',
     tono: 'testimonio',
     activo: true,
     cuerpo:
@@ -47,6 +51,7 @@ export const PLANTILLAS_BASE: Omit<Plantilla, 'id' | 'createdAt' | 'uid'>[] = [
   },
   {
     titulo: 'Cierre de mes',
+    imagenId: '',
     tono: 'urgencia',
     activo: true,
     cuerpo:

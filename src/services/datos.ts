@@ -24,8 +24,10 @@ import type {
   Membresia,
   Plantilla,
   Publicacion,
+  Novedad,
   Rol,
   RutaDia,
+  TipoNovedad,
   Usuario,
 } from '../types';
 
@@ -39,6 +41,8 @@ export const COL = {
   roles: 'roles',
   membresias: 'membresias',
   rutas: 'rutas',
+  novedades: 'novedades',
+  imagenes: 'imagenes',
 } as const;
 
 type ConId = { id: string };
@@ -110,6 +114,56 @@ export const registrarPublicacion = (datos: SinId<Publicacion>) =>
 export const borrarPublicacion = (id: string) => deleteDoc(doc(db, COL.publicaciones, id));
 export const editarPublicacion = (id: string, datos: Partial<Publicacion>) =>
   updateDoc(doc(db, COL.publicaciones, id), datos);
+
+/* ---- Novedades ---- */
+
+/* Solo se traen las de los últimos días: el historial completo no le sirve a
+   nadie y en el plan Spark cada lectura cuenta. */
+export const escucharNovedades = (
+  desde: string,
+  ok: (v: Novedad[]) => void,
+  fail: (e: Error) => void
+) => suscribir<Novedad>(COL.novedades, [where('ts', '>=', desde)], ok, fail);
+
+export const publicarNovedad = (
+  tipo: TipoNovedad,
+  titulo: string,
+  detalle: string,
+  autor: { id: string; nombre: string }
+) =>
+  addDoc(collection(db, COL.novedades), {
+    tipo,
+    titulo,
+    detalle,
+    uid: autor.id,
+    autorNombre: autor.nombre,
+    ts: new Date().toISOString(),
+  });
+
+/* ---- Imágenes ---- */
+
+export interface ImagenGuardada {
+  id: string;
+  nombre: string;
+  /** Data URL completa (data:image/jpeg;base64,…). */
+  datos: string;
+  peso: number;
+  uid: string;
+  createdAt: string;
+}
+
+/* Las imágenes viven en Firestore como base64 porque Cloud Storage exige el
+   plan Blaze desde febrero de 2026. Un documento de Firestore admite hasta
+   1 MiB, así que se comprimen antes de guardar. Ver utils/imagen.ts. */
+export const escucharImagenes = (
+  ok: (v: ImagenGuardada[]) => void,
+  fail: (e: Error) => void
+) => suscribir<ImagenGuardada>(COL.imagenes, [orderBy('createdAt', 'desc')], ok, fail);
+
+export const guardarImagen = (datos: Omit<ImagenGuardada, 'id'>) =>
+  addDoc(collection(db, COL.imagenes), datos);
+
+export const borrarImagen = (id: string) => deleteDoc(doc(db, COL.imagenes, id));
 
 /* ---- Ruta diaria ---- */
 

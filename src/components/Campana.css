@@ -1,0 +1,161 @@
+.campana {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.campana-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text-2);
+  transition: color var(--speed), background var(--speed);
+}
+
+.campana-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.campana-punto {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: var(--r-pill);
+  background: var(--danger);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.campana-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  width: 360px;
+  max-height: 440px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: campana-entra 140ms ease-out;
+}
+
+@keyframes campana-entra {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.campana-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.campana-lista {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.campana-item {
+  display: flex;
+  gap: 11px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.campana-item:last-child {
+  border-bottom: 0;
+}
+
+.campana-item.nuevo {
+  background: var(--primary-soft);
+}
+
+.campana-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+.campana-icono.grupo {
+  color: var(--c1);
+}
+.campana-icono.cliente {
+  color: var(--success);
+}
+.campana-icono.mensaje {
+  color: var(--violet);
+}
+.campana-icono.sistema {
+  color: var(--warn);
+}
+
+.campana-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.campana-titulo {
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+
+.campana-meta {
+  font-size: var(--t-xs);
+  color: var(--text-3);
+}
+
+.campana-vacio {
+  padding: 34px 16px;
+  text-align: center;
+  font-size: var(--t-sm);
+  color: var(--text-3);
+}
+
+@media (max-width: 900px) {
+  .campana-btn {
+    width: 42px;
+    height: 42px;
+  }
+
+  /* En el teléfono el panel ocupa el ancho útil en vez de asomarse fuera. */
+  .campana-panel {
+    position: fixed;
+    top: 64px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-height: 70vh;
+  }
+}

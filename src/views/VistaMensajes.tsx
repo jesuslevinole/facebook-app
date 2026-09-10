@@ -1,5 +1,16 @@
 import { useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Copy, Eye, MessagesSquare, Pencil, Plus, Trash2, TrendingUp } from 'lucide-react';
+import {
+  Copy,
+  Download,
+  Eye,
+  ImagePlus,
+  MessagesSquare,
+  Pencil,
+  Plus,
+  Trash2,
+  TrendingUp,
+  X,
+} from 'lucide-react';
 import Modal from '../components/Modal';
 import Buscador from '../components/Buscador';
 import CampoBusqueda from '../components/CampoBusqueda';
@@ -7,11 +18,18 @@ import PanelFiltros from '../components/PanelFiltros';
 import BotonFlotante from '../components/BotonFlotante';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
-import { borrarPlantilla, crearPlantilla, editarPlantilla } from '../services/datos';
+import { borrarPlantilla, crearPlantilla, editarPlantilla, publicarNovedad } from '../services/datos';
 import type { Cliente, Grupo, Identidad, Plantilla, Publicacion, TonoPlantilla } from '../types';
 import { diaMes, hoy } from '../utils/fecha';
 import { EFECTIVIDAD_VACIA, calcularEfectividad } from '../utils/efectividad';
 import { coincide } from '../utils/texto';
+import {
+  copiarImagen,
+  descargarImagen,
+  pesoLegible,
+  prepararImagen,
+} from '../utils/imagen';
+import { borrarImagen, guardarImagen, type ImagenGuardada } from '../services/datos';
 import { combinaciones, construirMensaje } from '../utils/mensaje';
 import { copiar } from '../utils/portapapeles';
 import './VistaMensajes.css';
@@ -21,6 +39,7 @@ interface Props {
   plantillas: Plantilla[];
   publicaciones: Publicacion[];
   clientes: Cliente[];
+  imagenes: ImagenGuardada[];
 }
 
 const TONOS: { id: TonoPlantilla; etiqueta: string; clase: string }[] = [
@@ -54,13 +73,20 @@ const GRUPO_EJEMPLO: Grupo = {
 };
 
 const VACIA: Omit<Plantilla, 'id' | 'createdAt' | 'uid'> = {
+  imagenId: '',
   titulo: '',
   cuerpo: '',
   tono: 'directo',
   activo: true,
 };
 
-export default function VistaMensajes({ grupos, plantillas, publicaciones, clientes }: Props) {
+export default function VistaMensajes({
+  grupos,
+  plantillas,
+  publicaciones,
+  clientes,
+  imagenes,
+}: Props) {
   const { avisar } = useAvisos();
   const { perfil, identidad, puede } = useSesion();
   const puedeEditar = puede('mensajes.editar');
@@ -79,6 +105,8 @@ export default function VistaMensajes({ grupos, plantillas, publicaciones, clien
 
   /* El mejor rendimiento sirve de referencia para la barra comparativa:
      lo que importa no es el número absoluto sino cuál rinde más. */
+  const imagenPorId = useMemo(() => new Map(imagenes.map((i) => [i.id, i])), [imagenes]);
+
   const mejorRendimiento = useMemo(
     () => Math.max(0.0001, ...[...efectividad.values()].map((e) => e.rendimiento)),
     [efectividad]
@@ -97,6 +125,14 @@ export default function VistaMensajes({ grupos, plantillas, publicaciones, clien
           uid: perfil?.id ?? '',
           createdAt: new Date().toISOString(),
         });
+        if (perfil) {
+          await publicarNovedad(
+            'mensaje',
+            `${perfil.nombre} creó un mensaje`,
+            datos.titulo,
+            perfil
+          );
+        }
         avisar('Mensaje creado.');
       }
       setCreando(false);
@@ -310,6 +346,14 @@ export default function VistaMensajes({ grupos, plantillas, publicaciones, clien
                   </p>
                 </div>
 
+                {p.imagenId && imagenPorId.get(p.imagenId) && (
+                  <img
+                    className="mensaje-miniatura"
+                    src={imagenPorId.get(p.imagenId)?.datos}
+                    alt=""
+                  />
+                )}
+
                 <p className="mensaje-cuerpo">{p.cuerpo}</p>
 
                 {puedeEditar && (
@@ -340,6 +384,7 @@ export default function VistaMensajes({ grupos, plantillas, publicaciones, clien
           plantilla={editando}
           grupoMuestra={grupoMuestra}
           identidad={identidad}
+          imagenes={imagenes}
           alCerrar={() => {
             setCreando(false);
             setEditando(null);
@@ -415,20 +460,170 @@ export default function VistaMensajes({ grupos, plantillas, publicaciones, clien
   );
 }
 
+/* ---------- Imagen adjunta ---------- */
+
+function BloqueImagen({
+  imagenes,
+  imagenId,
+  alCambiar,
+}: {
+  imagenes: ImagenGuardada[];
+  imagenId: string;
+  alCambiar: (id: string) => void;
+}) {
+  const { avisar } = useAvisos();
+  const { perfil } = useSesion();
+  const entrada = useRef<HTMLInputElement>(null);
+  const [subiendo, setSubiendo] = useState(false);
+
+  const elegida = imagenes.find((i) => i.id === imagenId);
+
+  const subir = async (archivo: File) => {
+    if (!perfil) return;
+    setSubiendo(true);
+    try {
+      const lista = await prepararImagen(archivo);
+      const ref = await guardarImagen({
+        nombre: archivo.name,
+        datos: lista.datos,
+        peso: lista.peso,
+        uid: perfil.id,
+        createdAt: new Date().toISOString(),
+      });
+      alCambiar(ref.id);
+      avisar(`Imagen lista (${pesoLegible(lista.peso)}).`);
+    } catch (error) {
+      avisar(error instanceof Error ? error.message : 'No se pudo procesar la imagen.', 'error');
+    }
+    setSubiendo(false);
+  };
+
+  const quitar = async () => {
+    const id = imagenId;
+    alCambiar('');
+    /* Solo se borra el archivo si no lo usa otro mensaje. */
+    try {
+      await borrarImagen(id);
+    } catch {
+      /* Si falla, queda huérfana: ocupa poco y no rompe nada. */
+    }
+  };
+
+  return (
+    <div className="field">
+      <span className="field-label">Imagen (opcional)</span>
+
+      {elegida ? (
+        <div className="imagen-elegida">
+          <img className="imagen-vista" src={elegida.datos} alt="" />
+          <div className="imagen-acciones">
+            <span className="text-sm muted-soft">{pesoLegible(elegida.peso)}</span>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={async () => {
+                const ok = await copiarImagen(elegida.datos);
+                if (ok) avisar('Imagen copiada. Pégala en Facebook.');
+                else {
+                  descargarImagen(elegida.datos, elegida.nombre);
+                  avisar('Imagen descargada: adjúntala desde la galería.', 'info');
+                }
+              }}
+            >
+              <Copy size={14} />
+              Copiar
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => descargarImagen(elegida.datos, elegida.nombre)}
+            >
+              <Download size={14} />
+              Descargar
+            </button>
+            <button type="button" className="btn btn-danger btn-sm" onClick={() => void quitar()}>
+              <X size={14} />
+              Quitar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <button
+            type="button"
+            className="imagen-soltar"
+            onClick={() => entrada.current?.click()}
+            disabled={subiendo}
+          >
+            <ImagePlus size={22} />
+            {subiendo ? 'Procesando…' : 'Elegir una imagen'}
+            <span className="text-sm muted-soft">
+              Se reduce y comprime sola. Queda guardada en Firestore, sin costo extra.
+            </span>
+          </button>
+
+          {imagenes.length > 0 && (
+            <ul className="imagen-galeria">
+              {imagenes.slice(0, 12).map((i) => (
+                <li key={i.id}>
+                  <button
+                    type="button"
+                    className="imagen-chip"
+                    onClick={() => alCambiar(i.id)}
+                    title={i.nombre}
+                  >
+                    <img src={i.datos} alt="" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+
+      <input
+        ref={entrada}
+        className="sr-only"
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          const archivo = e.target.files?.[0];
+          if (archivo) void subir(archivo);
+          e.target.value = '';
+        }}
+      />
+    </div>
+  );
+}
+
 /* ---------- Editor ---------- */
 
 interface EditorProps {
   plantilla: Plantilla | null;
   grupoMuestra: Grupo;
   identidad: Identidad;
+  imagenes: ImagenGuardada[];
   alCerrar: () => void;
   alGuardar: (datos: Omit<Plantilla, 'id' | 'createdAt' | 'uid'>, id?: string) => Promise<void>;
 }
 
-function EditorMensaje({ plantilla, grupoMuestra, identidad, alCerrar, alGuardar }: EditorProps) {
+function EditorMensaje({
+  plantilla,
+  grupoMuestra,
+  identidad,
+  imagenes,
+  alCerrar,
+  alGuardar,
+}: EditorProps) {
   const [datos, setDatos] = useState<Omit<Plantilla, 'id' | 'createdAt' | 'uid'>>(() =>
     plantilla
-      ? { titulo: plantilla.titulo, cuerpo: plantilla.cuerpo, tono: plantilla.tono, activo: plantilla.activo }
+      ? {
+          titulo: plantilla.titulo,
+          cuerpo: plantilla.cuerpo,
+          tono: plantilla.tono,
+          activo: plantilla.activo,
+          imagenId: plantilla.imagenId ?? '',
+        }
       : { ...VACIA }
   );
   const [tocado, setTocado] = useState(false);
@@ -530,6 +725,12 @@ function EditorMensaje({ plantilla, grupoMuestra, identidad, alCerrar, alGuardar
               <span className="field-error">El mensaje es muy corto para publicar.</span>
             )}
           </div>
+
+          <BloqueImagen
+            imagenes={imagenes}
+            imagenId={datos.imagenId}
+            alCambiar={(id) => setDatos((p) => ({ ...p, imagenId: id }))}
+          />
 
           <div className="editor-herramientas">
             <p className="eyebrow">Insertar</p>

@@ -1,4 +1,6 @@
 import { CalendarDays, LogOut, Menu, Moon, Sun, Unlock, WifiOff } from 'lucide-react';
+import Campana from './Campana';
+import type { Novedad } from '../types';
 import { fechaLarga } from '../utils/fecha';
 import type { Tema } from '../hooks/useTema';
 import './BarraSuperior.css';
@@ -13,6 +15,8 @@ interface Props {
   esInvitado: boolean;
   alSalir: () => void;
   alAbrirMenu: () => void;
+  novedades: Novedad[];
+  uid: string;
 }
 
 export default function BarraSuperior({
@@ -25,6 +29,8 @@ export default function BarraSuperior({
   esInvitado,
   alSalir,
   alAbrirMenu,
+  novedades,
+  uid,
 }: Props) {
   const iniciales =
     vendedor
@@ -58,6 +64,8 @@ export default function BarraSuperior({
             <span className="solo-ancho">Sin sesión</span>
           </span>
         )}
+
+        <Campana novedades={novedades} uid={uid} />
 
         {/* Controles de escritorio: en móvil viven dentro del menú. */}
         <div className="superior-escritorio">

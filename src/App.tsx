@@ -15,6 +15,8 @@ import {
   escucharClientes,
   escucharGrupos,
   escucharMembresias,
+  escucharImagenes,
+  escucharNovedades,
   escucharPlantillas,
   escucharPublicaciones,
   escucharRutaDelDia,
@@ -22,12 +24,14 @@ import {
   guardarRuta,
   guardarAjustes,
   leerAjustes,
+  type ImagenGuardada,
 } from './services/datos';
 import type {
   Ajustes,
   Cliente,
   Grupo,
   Membresia,
+  Novedad,
   Plantilla,
   Publicacion,
   RutaDia,
@@ -83,6 +87,8 @@ export default function App() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [membresias, setMembresias] = useState<Membresia[]>([]);
   const [rutaDia, setRutaDia] = useState<RutaDia | null>(null);
+  const [novedades, setNovedades] = useState<Novedad[]>([]);
+  const [imagenes, setImagenes] = useState<ImagenGuardada[]>([]);
   const [ajustes, setAjustes] = useState<Ajustes>(AJUSTES_INICIALES);
   const [cargando, setCargando] = useState(true);
   const [sinConexion, setSinConexion] = useState(!navigator.onLine);
@@ -110,6 +116,8 @@ export default function App() {
       escucharPublicaciones(desde, setPublicaciones, fallar),
       escucharUsuarios(setUsuarios, fallar),
       escucharMembresias(setMembresias, fallar),
+      escucharNovedades(new Date(Date.now() - 21 * 864e5).toISOString(), setNovedades, fallar),
+      escucharImagenes(setImagenes, fallar),
     ];
 
     return () => bajas.forEach((baja) => baja());
@@ -178,13 +186,12 @@ export default function App() {
     [misPublicaciones, fecha]
   );
 
-  /* Grupos y mensajes son de cada vendedor. Los que tienen `uid` vacío
-     vienen de cuando el catálogo era compartido: siguen visibles para todos
-     para no perderlos, y dejan de serlo en cuanto alguien los edita. */
-  const gruposVisibles = useMemo(() => {
-    if (!perfil) return [];
-    return grupos.filter((g) => !g.uid || g.uid === perfil.id);
-  }, [grupos, perfil]);
+  /* El catálogo de grupos es del equipo: lo que uno agrega lo ven todos,
+     esté o no dentro de ese grupo. Lo que sí es individual es la membresía
+     (quién ya fue aceptado) y la ruta diaria de cada uno.
+
+     `uid` en el grupo dice quién lo aportó, no quién puede verlo. */
+  const gruposVisibles = grupos;
 
   const plantillasVisibles = useMemo(() => {
     if (!perfil) return [];
@@ -308,6 +315,8 @@ export default function App() {
           esInvitado={esInvitado}
           alSalir={() => void cerrarSesion()}
           alAbrirMenu={() => setMenuAbierto(true)}
+          novedades={novedades}
+          uid={perfil.id}
         />
 
         {vista === 'panel' && (
@@ -328,6 +337,7 @@ export default function App() {
             grupos={gruposRuta}
             misGrupos={misGrupos}
             plantillas={plantillasVisibles}
+            imagenes={imagenes}
             alRegenerarRuta={regenerarRuta}
             publicaciones={misPublicaciones}
             ajustes={ajustes}
@@ -364,6 +374,7 @@ export default function App() {
             plantillas={plantillasVisibles}
             publicaciones={misPublicaciones}
             clientes={clientesVisibles}
+            imagenes={imagenes}
           />
         )}
 

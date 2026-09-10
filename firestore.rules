@@ -85,6 +85,20 @@ service cloud.firestore {
     //   allow write: if habilitado() && id.split('_')[0] == request.auth.uid;
     // }
     //
+    // match /novedades/{id} {
+    //   // Avisos del equipo: todos leen, cada uno firma los suyos.
+    //   allow read: if habilitado();
+    //   allow create: if habilitado() && request.resource.data.uid == request.auth.uid;
+    //   allow update, delete: if false;
+    // }
+    //
+    // match /imagenes/{id} {
+    //   allow read: if habilitado();
+    //   allow create: if habilitado() && request.resource.data.uid == request.auth.uid;
+    //   allow delete: if habilitado() && resource.data.uid == request.auth.uid;
+    //   allow update: if false;
+    // }
+    //
     // match /rutas/{id} {
     //   // La ruta del día es privada de cada vendedor.
     //   allow read, write: if habilitado() && id.split('_')[0] == request.auth.uid;
@@ -97,15 +111,11 @@ service cloud.firestore {
     //   allow update: if false;
     // }
     //
-    // // Grupos y mensajes son de cada vendedor. Los que tienen `uid` vacío
-    // // vienen del catálogo compartido antiguo y siguen visibles para todos.
+    // // El catálogo de grupos es del equipo: todos lo leen y lo editan.
+    // // `uid` guarda quién lo aportó, no restringe el acceso.
     // match /grupos/{id} {
-    //   allow read: if habilitado()
-    //     && (resource.data.uid == '' || resource.data.uid == request.auth.uid);
-    //   allow create: if puede('grupos.editar')
-    //     && request.resource.data.uid == request.auth.uid;
-    //   allow update, delete: if puede('grupos.editar')
-    //     && (resource.data.uid == '' || resource.data.uid == request.auth.uid);
+    //   allow read: if habilitado();
+    //   allow write: if puede('grupos.editar');
     // }
     //
     // match /plantillas/{id} {

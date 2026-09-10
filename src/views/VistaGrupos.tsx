@@ -28,6 +28,7 @@ import {
   borrarGrupo,
   crearGrupo,
   editarGrupo,
+  publicarNovedad,
   salirDeGrupo,
   unirseAGrupo,
 } from '../services/datos';
@@ -347,7 +348,17 @@ export default function VistaGrupos({
           uid: perfil?.id ?? '',
           createdAt: new Date().toISOString(),
         });
-        avisar('Grupo agregado al catálogo.');
+        if (perfil) {
+          await publicarNovedad(
+            'grupo',
+            `Grupo nuevo: ${datos.nombre}`,
+            `${datos.comuna || 'Sin comuna'} · ${
+              datos.miembros ? `${datos.miembros.toLocaleString('es-CL')} miembros` : 'tamaño sin definir'
+            }. Márcalo si ya eres miembro.`,
+            perfil
+          );
+        }
+        avisar('Grupo agregado al catálogo del equipo.');
       }
       setCreando(false);
       setEditando(null);

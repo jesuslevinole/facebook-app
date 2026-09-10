@@ -30,10 +30,16 @@ import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
 import type { Vista } from '../components/Navegacion';
 import type { Ajustes, Cliente, Grupo, Parada, Plantilla, Publicacion } from '../types';
-import { borrarPublicacion, editarPublicacion, registrarPublicacion } from '../services/datos';
+import {
+  borrarPublicacion,
+  editarPublicacion,
+  registrarPublicacion,
+  type ImagenGuardada,
+} from '../services/datos';
 import { faltaParaReinicio, horaCorta, horaDeChile, hoy } from '../utils/fecha';
 import { etiquetaHora, mejoresHoras } from '../utils/horarios';
 import { coincide } from '../utils/texto';
+import { copiarImagen, descargarImagen } from '../utils/imagen';
 import { construirMensaje } from '../utils/mensaje';
 import { abrirEnPestana, copiar } from '../utils/portapapeles';
 import { construirRuta } from '../utils/rotacion';
@@ -48,6 +54,7 @@ interface Props {
   /** Ya viene filtrado a las publicaciones del vendedor en sesión. */
   publicaciones: Publicacion[];
   ajustes: Ajustes;
+  imagenes: ImagenGuardada[];
   alIrA: (vista: Vista) => void;
   alRegenerarRuta: () => Promise<number>;
 }
@@ -61,6 +68,7 @@ export default function VistaPublicar({
   plantillas,
   publicaciones,
   ajustes,
+  imagenes,
   alIrA,
   alRegenerarRuta,
 }: Props) {
@@ -126,6 +134,8 @@ export default function VistaPublicar({
 
   const enEspera = esperaRestante > 0;
 
+  const imagenPorId = useMemo(() => new Map(imagenes.map((i) => [i.id, i])), [imagenes]);
+
   /* Perfil horario del vendedor, calculado sobre todo su historial. */
   const franjasBuenas = useMemo(() => mejoresHoras(publicaciones, 3), [publicaciones]);
   const horaActual = horaDeChile();
@@ -170,6 +180,7 @@ export default function VistaPublicar({
       try {
         await registrarPublicacion({
           uid: perfil.id,
+          enlace: '',
           hora: horaDeChile(),
           likes: 0,
           comentarios: 0,
@@ -455,6 +466,23 @@ export default function VistaPublicar({
                       alRotar={() => otroMensaje(parada)}
                       alMedir={() => registro && setMidiendo(registro)}
                       enEspera={enEspera}
+                      imagen={
+                        parada.plantilla?.imagenId
+                          ? imagenPorId.get(parada.plantilla.imagenId)
+                          : undefined
+                      }
+                      alCopiarImagen={async () => {
+                        const img = parada.plantilla?.imagenId
+                          ? imagenPorId.get(parada.plantilla.imagenId)
+                          : undefined;
+                        if (!img) return;
+                        const ok = await copiarImagen(img.datos);
+                        if (ok) avisar('Imagen copiada. Pégala en Facebook.');
+                        else {
+                          descargarImagen(img.datos, img.nombre);
+                          avisar('Imagen descargada: adjúntala desde la galería.', 'info');
+                        }
+                      }}
                     />
                   );
                 })}
@@ -571,12 +599,19 @@ function ModalInteracciones({
   const [comentarios, setComentarios] = useState(publicacion.comentarios ?? 0);
   const [factibles, setFactibles] = useState(publicacion.factibles ?? 0);
   const [noFactibles, setNoFactibles] = useState(publicacion.noFactibles ?? 0);
+  const [enlace, setEnlace] = useState(publicacion.enlace ?? '');
   const [guardando, setGuardando] = useState(false);
 
   const guardar = async () => {
     setGuardando(true);
     try {
-      await editarPublicacion(publicacion.id, { likes, comentarios, factibles, noFactibles });
+      await editarPublicacion(publicacion.id, {
+        likes,
+        comentarios,
+        factibles,
+        noFactibles,
+        enlace: enlace.trim(),
+      });
       avisar('Interacciones registradas. Cuentan para armar la ruta de mañana.');
       alCerrar();
     } catch {
@@ -606,6 +641,34 @@ function ModalInteracciones({
         </>
       }
     >
+      <label className="field enlace-campo">
+        <span className="field-label">Enlace de la publicación</span>
+        <span className="row">
+          <input
+            className="input"
+            value={enlace}
+            onChange={(e) => setEnlace(e.target.value)}
+            placeholder="https://www.facebook.com/groups/…/posts/…"
+            inputMode="url"
+          />
+          {enlace.trim() && (
+            <a
+              className="btn btn-outline"
+              href={enlace.trim()}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink size={15} />
+              Ver
+            </a>
+          )}
+        </span>
+        <span className="field-hint">
+          En Facebook, toca la fecha de tu publicación y copia la dirección. Guardarla te evita
+          buscarla entre todo el muro cada vez que quieras contar sus reacciones.
+        </span>
+      </label>
+
       <div className="contadores">
         <Contador
           icono={<Heart size={16} />}
@@ -714,6 +777,8 @@ interface FilaProps {
   alMedir: () => void;
   /** true mientras corre el descanso obligatorio entre publicaciones. */
   enEspera: boolean;
+  imagen: ImagenGuardada | undefined;
+  alCopiarImagen: () => Promise<void>;
 }
 
 function Fila({
@@ -729,6 +794,8 @@ function Fila({
   alRotar,
   alMedir,
   enEspera,
+  imagen,
+  alCopiarImagen,
 }: FilaProps) {
   return (
     <>
@@ -784,6 +851,17 @@ function Fila({
                 <ExternalLink size={14} />
                 Abrir
               </button>
+              {registro?.enlace ? (
+                <a
+                  className="icon-btn"
+                  href={registro.enlace}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Abrir la publicación en Facebook"
+                >
+                  <ExternalLink size={16} />
+                </a>
+              ) : null}
               <button
                 type="button"
                 className="btn btn-outline btn-sm"
@@ -829,6 +907,28 @@ function Fila({
         <tr className="fila-mensaje">
           <td colSpan={5}>
             <p className="parada-texto">{parada.texto || 'Sin mensaje disponible.'}</p>
+            {imagen && (
+              <div className="parada-imagen">
+                <img src={imagen.datos} alt="" />
+                <div className="row">
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => void alCopiarImagen()}
+                  >
+                    <Copy size={14} />
+                    Copiar imagen
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => descargarImagen(imagen.datos, imagen.nombre)}
+                  >
+                    Descargar
+                  </button>
+                </div>
+              </div>
+            )}
           </td>
         </tr>
       )}

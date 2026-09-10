@@ -337,3 +337,36 @@
   background: var(--primary-soft);
   color: var(--primary);
 }
+
+.enlace-campo {
+  margin-bottom: 16px;
+}
+
+.enlace-campo .row {
+  gap: 8px;
+  align-items: stretch;
+}
+
+.enlace-campo .input {
+  min-width: 0;
+}
+
+.enlace-campo .btn {
+  flex: 0 0 auto;
+}
+
+.parada-imagen {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.parada-imagen img {
+  max-width: 260px;
+  max-height: 170px;
+  object-fit: contain;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}

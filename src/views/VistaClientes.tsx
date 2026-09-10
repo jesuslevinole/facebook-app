@@ -23,7 +23,7 @@ import { ETAPAS, etapaDe, normalizarEstado } from '../utils/estados';
 import { useAvisos } from '../components/Avisos';
 import { useSesion } from '../context/Sesion';
 import { COMUNAS } from '../data/comunas';
-import { borrarCliente, crearCliente, editarCliente } from '../services/datos';
+import { borrarCliente, crearCliente, editarCliente, publicarNovedad } from '../services/datos';
 import type { Cliente, Compania, EstadoCliente, Grupo, Usuario } from '../types';
 import { formatearRut, validarRut } from '../utils/rut';
 import './VistaClientes.css';
@@ -111,6 +111,14 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
           createdAt: ahora,
           updatedAt: ahora,
         });
+        if (perfil) {
+          await publicarNovedad(
+            'cliente',
+            `${perfil.nombre} registró un cliente`,
+            `${datos.nombre} ${datos.apellido} · ${datos.comuna} · ${datos.compania}`,
+            perfil
+          );
+        }
         avisar('Cliente registrado.');
       }
       setCreando(false);
