@@ -5,6 +5,7 @@ import type { Vista } from '../components/Navegacion';
 import type { Ajustes, Cliente, Grupo, Publicacion } from '../types';
 import { claveMenos, diaMes, hoy, mesActual, ultimosDias } from '../utils/fecha';
 import { CERRADAS, etapaDe, normalizarEstado } from '../utils/estados';
+import { iniciales, nombreCompleto } from './VistaClientes';
 import './VistaPanel.css';
 
 interface Props {
@@ -246,13 +247,8 @@ export default function VistaPanel({
                   <tr key={c.id}>
                     <td>
                       <div className="row">
-                        <span className="avatar">
-                          {c.nombre[0]}
-                          {c.apellido[0]}
-                        </span>
-                        <span className="truncate">
-                          {c.nombre} {c.apellido}
-                        </span>
+                        <span className="avatar">{iniciales(c)}</span>
+                        <span className="truncate">{nombreCompleto(c)}</span>
                       </div>
                     </td>
                     <td className="muted">{c.comuna}</td>

@@ -5,6 +5,7 @@ import { useSesion } from '../context/Sesion';
 import { editarCliente } from '../services/datos';
 import type { Cliente, EstadoCliente, Grupo, Usuario } from '../types';
 import { ETAPAS, etapaDe, normalizarEstado } from '../utils/estados';
+import { nombreCompleto } from './VistaClientes';
 import './Pipeline.css';
 
 interface Props {
@@ -50,7 +51,7 @@ export default function Pipeline({ clientes, grupos, usuarios, alEditar }: Props
     if (normalizarEstado(cliente.estado) === destino) return;
     try {
       await editarCliente(cliente.id, { estado: destino, updatedAt: new Date().toISOString() });
-      avisar(`${cliente.nombre} pasó a «${etapaDe(destino).etiqueta}».`);
+      avisar(`${nombreCompleto(cliente)} pasó a «${etapaDe(destino).etiqueta}».`);
     } catch {
       avisar('No se pudo mover el cliente.', 'error');
     }
@@ -115,14 +116,12 @@ export default function Pipeline({ clientes, grupos, usuarios, alEditar }: Props
                     >
                       <div className="tarjeta-head">
                         <GripVertical size={14} className="tarjeta-asa" />
-                        <span className="tarjeta-nombre truncate">
-                          {c.nombre} {c.apellido}
-                        </span>
+                        <span className="tarjeta-nombre truncate">{nombreCompleto(c)}</span>
                         <button
                           type="button"
                           className="icon-btn tarjeta-editar"
                           onClick={() => alEditar(c)}
-                          aria-label={`Editar ${c.nombre}`}
+                          aria-label={`Editar ${nombreCompleto(c)}`}
                         >
                           <Pencil size={13} />
                         </button>

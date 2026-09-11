@@ -25,7 +25,7 @@ import { useSesion } from '../context/Sesion';
 import { COMUNAS } from '../data/comunas';
 import { borrarCliente, crearCliente, editarCliente, publicarNovedad } from '../services/datos';
 import type { Cliente, Compania, EstadoCliente, Grupo, Usuario } from '../types';
-import { formatearRut, validarRut } from '../utils/rut';
+
 import './VistaClientes.css';
 
 interface Props {
@@ -34,6 +34,18 @@ interface Props {
   grupos: Grupo[];
   usuarios: Usuario[];
   cargando: boolean;
+}
+
+/* Sin campos obligatorios, una ficha puede quedar sin nombre. Estas dos
+   funciones evitan que eso deje tarjetas en blanco o avatares vacíos. */
+export function nombreCompleto(c: Cliente): string {
+  const completo = `${c.nombre} ${c.apellido}`.trim();
+  return completo || 'Sin nombre';
+}
+
+export function iniciales(c: Cliente): string {
+  const letras = `${c.nombre.trim()[0] ?? ''}${c.apellido.trim()[0] ?? ''}`.toUpperCase();
+  return letras || '—';
 }
 
 const VACIO: Omit<Cliente, 'id'> = {
@@ -276,14 +288,9 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
                       <tr key={c.id}>
                         <td>
                           <div className="row">
-                            <span className="avatar">
-                              {c.nombre[0]}
-                              {c.apellido[0]}
-                            </span>
+                            <span className="avatar">{iniciales(c)}</span>
                             <div className="celda-nombre">
-                              <span className="celda-fuerte truncate">
-                                {c.nombre} {c.apellido}
-                              </span>
+                              <span className="celda-fuerte truncate">{nombreCompleto(c)}</span>
                               {c.telefono && <span className="text-sm muted-soft">{c.telefono}</span>}
                             </div>
                           </div>
@@ -384,14 +391,9 @@ export default function VistaClientes({ clientes, grupos, usuarios, cargando }: 
                   <li key={c.id} className="cliente-card">
                     <div className="row row-between">
                       <div className="row">
-                        <span className="avatar">
-                          {c.nombre[0]}
-                          {c.apellido[0]}
-                        </span>
+                        <span className="avatar">{iniciales(c)}</span>
                         <div className="celda-nombre">
-                          <span className="celda-fuerte">
-                            {c.nombre} {c.apellido}
-                          </span>
+                          <span className="celda-fuerte">{nombreCompleto(c)}</span>
                           <span className="text-sm muted-soft">{c.rut}</span>
                         </div>
                       </div>
@@ -551,25 +553,15 @@ function FormularioCliente({ cliente, grupos, alCerrar, alGuardar }: FormProps) 
   const [datos, setDatos] = useState<Omit<Cliente, 'id'>>(() =>
     cliente ? { ...cliente } : { ...VACIO }
   );
-  const [tocado, setTocado] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
   const cambiar = <K extends keyof Omit<Cliente, 'id'>>(campo: K, valor: Omit<Cliente, 'id'>[K]) =>
     setDatos((previos) => ({ ...previos, [campo]: valor }));
 
-  const rutOk = validarRut(datos.rut);
-  const errores = {
-    nombre: !datos.nombre.trim(),
-    apellido: !datos.apellido.trim(),
-    rut: !rutOk,
-    comuna: !datos.comuna,
-    direccion: !datos.direccion.trim(),
-  };
-  const hayErrores = Object.values(errores).some(Boolean);
-
+  /* Sin campos obligatorios ni validación de formato: la ficha se llena
+     con lo que haya en el momento y se completa después. Exigir el RUT
+     correcto al registrar obligaba a descartar el contacto o inventarlo. */
   const enviar = async () => {
-    setTocado(true);
-    if (hayErrores) return;
     setGuardando(true);
     await alGuardar(datos, cliente?.id);
     setGuardando(false);
@@ -596,43 +588,36 @@ function FormularioCliente({ cliente, grupos, alCerrar, alGuardar }: FormProps) 
         </>
       }
     >
-      <div className="form-grid">
+      <div className="form-grid form-grid-3">
         <label className="field">
           <span className="field-label">Nombre</span>
           <input
-            className={`input${tocado && errores.nombre ? ' invalid' : ''}`}
+            className="input"
             value={datos.nombre}
             onChange={(e) => cambiar('nombre', e.target.value)}
             placeholder="María"
           />
-          {tocado && errores.nombre && <span className="field-error">Escribe el nombre.</span>}
         </label>
 
         <label className="field">
           <span className="field-label">Apellido</span>
           <input
-            className={`input${tocado && errores.apellido ? ' invalid' : ''}`}
+            className="input"
             value={datos.apellido}
             onChange={(e) => cambiar('apellido', e.target.value)}
             placeholder="González"
           />
-          {tocado && errores.apellido && <span className="field-error">Escribe el apellido.</span>}
         </label>
 
         <label className="field">
           <span className="field-label">RUT</span>
           <input
-            className={`input${tocado && errores.rut ? ' invalid' : ''}`}
+            className="input"
             value={datos.rut}
-            onChange={(e) => cambiar('rut', formatearRut(e.target.value))}
+            onChange={(e) => cambiar('rut', e.target.value)}
             placeholder="12.345.678-9"
             inputMode="text"
           />
-          {tocado && errores.rut ? (
-            <span className="field-error">El dígito verificador no corresponde.</span>
-          ) : (
-            <span className="field-hint">Se formatea solo mientras escribes.</span>
-          )}
         </label>
 
         <label className="field">
@@ -653,23 +638,20 @@ function FormularioCliente({ cliente, grupos, alCerrar, alGuardar }: FormProps) 
             valor={datos.comuna}
             alCambiar={(v) => cambiar('comuna', v)}
             vacio="Selecciona una comuna"
-            invalido={tocado && errores.comuna}
           />
-          {tocado && errores.comuna && <span className="field-error">Elige la comuna.</span>}
         </div>
 
         <label className="field">
           <span className="field-label">Dirección</span>
           <input
-            className={`input${tocado && errores.direccion ? ' invalid' : ''}`}
+            className="input"
             value={datos.direccion}
             onChange={(e) => cambiar('direccion', e.target.value)}
             placeholder="Av. Los Aromos 1234, depto 501"
           />
-          {tocado && errores.direccion && <span className="field-error">Escribe la dirección.</span>}
         </label>
 
-        <label className="field col-span-2">
+        <label className="field">
           <span className="field-label">Perfil de Facebook</span>
           <input
             className="input"
@@ -678,7 +660,6 @@ function FormularioCliente({ cliente, grupos, alCerrar, alGuardar }: FormProps) 
             placeholder="https://facebook.com/perfil.del.cliente"
             inputMode="url"
           />
-          <span className="field-hint">Pega el enlace del perfil para retomar la conversación.</span>
         </label>
 
         <div className="field">
@@ -716,7 +697,7 @@ function FormularioCliente({ cliente, grupos, alCerrar, alGuardar }: FormProps) 
             alCambiar={(v) => cambiar('grupoId', v || null)}
             vacio="Llegó por otra vía"
           />
-          <span className="field-hint">Busca por nombre o por el código que vio el cliente.</span>
+
         </div>
 
         <div className="field">
@@ -729,7 +710,7 @@ function FormularioCliente({ cliente, grupos, alCerrar, alGuardar }: FormProps) 
           />
         </div>
 
-        <label className="field col-span-2">
+        <label className="field col-span-3">
           <span className="field-label">Notas</span>
           <textarea
             className="textarea"
